@@ -1,67 +1,94 @@
 import { StyleSheet, Text, View, Button, StatusBar, Pressable, FlatList } from 'react-native';
-import React, {useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { NavigationContainer, StackActions } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { TextInput } from 'react-native-web';
 
 
 const BoardgamesStack = createNativeStackNavigator()
 
 export default function Boardgames () {
   return (
-    <BoardgamesStack.Navigator>
+    <BoardgamesStack.Navigator initialRouteName='List' screenOptions={{headerShown:false}}>
       <BoardgamesStack.Screen 
         name="List"
         component={BoardgamesList}
+      />
+      <BoardgamesStack.Screen 
+        name="Details"
+        component={BoardgamesDetails}
+      />
+      <BoardgamesStack.Screen 
+        name="Adder"
+        component={BoardgamesAdder}
       />
     </BoardgamesStack.Navigator>
   )
 }
 
 const ListItem = ({name}) => {
-    return (
-      <Pressable>
+    return (     
         <View style={styles.listItem}>
           <Text style={styles.listText}>{name}</Text>
         </View>
-      </Pressable>
     )
 }
 
 const DATA = [
-    {name:'Inis',
-    id:'1',
-    },
-    {name: 'Spirit Island',
-    id:'2',
-    },
-    {name: 'Gloomhaven',
-    id:'3',
-    },
-    {name: 'Oath: Chronicles of Empire & Exile',
-    id:'4',
-    },
-    {name: 'King\'s Dillema',
-    id:'5'},
+    
 ];
 
-export function BoardgamesList () {
-    const [boardgames, setBoardgames] = useState([])
-    const [forDetails, setForDetails] = useState()
-    
-    const renderListItem = ({item}) => (
-        <ListItem name = {item.name} />
-    )
+//Main menu flatlist of all added boardgames
+function BoardgamesList ({navigation}) {
+  const renderListItem = ({item}) => (
+    <Pressable onPress = {() => {
+        navigation.navigate('Details', {selected: item})
+      }}>
+      <ListItem name = {item.name}/>
+    </Pressable>
+  )
 
-    return (
+  return (
+    <View>
+      <StatusBar translucent = {false} backgroundColor = '#306935'/>
+      <Button  title = "Add" onPress={() => navigation.navigate('Adder')}/>
+      <FlatList 
+          data = {DATA} 
+          renderItem = {renderListItem} 
+          keyExtractor = {item => (item.id)}
+      />
+    </View>
+  );
+}
+
+//details screen for when selecting a boardgame from the list, details are passed via route.params
+function BoardgamesDetails ({route, navigation}) {
+  const {selected} = route.params;
+  useEffect(() => {console.log(`Details item is ${JSON.stringify(selected)}`)})
+  return (
+    <View>
       <View>
-        <StatusBar translucent = {false} backgroundColor = '#306935'/>
-        <FlatList 
-            data = {DATA} 
-            renderItem = {renderListItem} 
-            keyExtractor = {item => (item.id)}
-        />
+        <Text>{selected.name}</Text>
       </View>
-    );
+      <View>
+        <Text>Play count: {selected.plays}</Text>
+        <Text>Last played: {selected.lastPlayed}</Text>
+      </View>
+    </View>
+  )
+}
+
+//
+function BoardgamesAdder ({navigation}) {
+  const [title, onChangeTitle] = React.useState("Title")
+  return (
+    <View>
+      <Text>Add a new game</Text>
+      <Text>Title:</Text>
+      <TextInput value={title} onChangeText={onChangeTitle}/>
+    </View>
+  )
 }
 
 const styles = StyleSheet.create({
