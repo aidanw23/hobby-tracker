@@ -3,9 +3,13 @@ import React, {useEffect, useState} from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { NavigationContainer, StackActions } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { TextInput } from 'react-native-web';
+import { TextInput } from 'react-native';
+import Slider from '@react-native-community/slider';
+import DateTimePickerModal from "react-native-modal-datetime-picker";
 
 
+
+//Core main page containging navigators for all boardgame components
 const BoardgamesStack = createNativeStackNavigator()
 
 export default function Boardgames () {
@@ -27,6 +31,7 @@ export default function Boardgames () {
   )
 }
 
+// List item for the flat list
 const ListItem = ({name}) => {
     return (     
         <View style={styles.listItem}>
@@ -35,10 +40,7 @@ const ListItem = ({name}) => {
     )
 }
 
-const DATA = [
-    
-];
-
+const DATA = []
 //Main menu flatlist of all added boardgames
 function BoardgamesList ({navigation}) {
   const renderListItem = ({item}) => (
@@ -79,14 +81,58 @@ function BoardgamesDetails ({route, navigation}) {
   )
 }
 
-//
+//component rendered when user tries to add new game
 function BoardgamesAdder ({navigation}) {
+
   const [title, onChangeTitle] = React.useState("Title")
+  const [plays, onChangePlays] = React.useState("0")
+  const [rating, onChangeRating] =React.useState(0)
+  const [lastPlayed, setLastPlayed] = React.useState("Not set")
+
+  const [isDatePickerVisible,setDatePickerVisibility] = useState(false)
+
+  const showDatePicker = () => {
+    setDatePickerVisibility(true);
+  };
+
+  const hideDatePicker = () => {
+    setDatePickerVisibility(false);
+  };
+
+  const handleConfirm = (date) => {
+    console.warn("A date has been picked: ", date);
+    setLastPlayed(date)
+    hideDatePicker();
+  };
+
   return (
     <View>
       <Text>Add a new game</Text>
-      <Text>Title:</Text>
-      <TextInput value={title} onChangeText={onChangeTitle}/>
+      <View>
+        <Text>Title:</Text>
+        <TextInput value={title} onChangeText={onChangeTitle}/>
+      </View>
+      <Text>No. of plays:</Text>
+      <TextInput value={plays} onChangeText={onChangePlays}/>
+      <Text>Rating:</Text>
+      <Text>{rating}</Text>
+      <Slider 
+        minimumValue={1}
+        maximumValue={10}
+        step={0.5}
+        onValueChange={onChangeRating}
+      />
+      <Text>Last Played:</Text>
+      <Pressable onPress={showDatePicker}>
+        <Text>Please select date</Text>
+      </Pressable>
+      <Text>{JSON.stringify(lastPlayed)}</Text>
+      <DateTimePickerModal
+        isVisible={isDatePickerVisible}
+        mode="date"
+        onConfirm={handleConfirm}
+        onCancel={hideDatePicker}
+      />
     </View>
   )
 }
