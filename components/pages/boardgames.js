@@ -1,7 +1,7 @@
 import { StyleSheet, Text, View, Button, StatusBar, Pressable, FlatList } from 'react-native';
 import React, {useEffect, useState} from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { NavigationContainer, StackActions } from '@react-navigation/native';
+import { useIsFocused } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { TextInput } from 'react-native';
 import Slider from '@react-native-community/slider';
@@ -11,8 +11,6 @@ import DateTimePickerModal from "react-native-modal-datetime-picker";
 
 //Core main page containging navigators for all boardgame components
 const BoardgamesStack = createNativeStackNavigator()
-
-const DATA= []
 
 export default function Boardgames () {
   return (
@@ -45,9 +43,11 @@ const ListItem = ({name}) => {
 
 //Main menu flatlist of all added boardgames
 function BoardgamesList ({navigation}) {
-  const [fullBG, setFullBG] = useState([{name:'test'},{name: 'test2'}])
+  const [fullBG, setFullBG] = useState([])
+  const [search, setSearch] = useState()
+  const [searchList, setSearchList] = useState([])
   const [test, setTest] = useState()
-  
+  const isFocused = useIsFocused()
 
   const getData = async () => {
     try {
@@ -59,14 +59,37 @@ function BoardgamesList ({navigation}) {
       console.log(`FullBG is currently: ${JSON.stringify(fullBG)}`)
     } catch(e) {
       console.warn("Boardgame list not read")
-      //NEEDS INITIAL SETUP???
     }
   }
 
+  //autorefreshes page when its returned to for deleting or adding purposes
   useEffect (() => {
-    getData()
-  },[test])
+    console.log(searchList)
+    if (isFocused) {
+      getData()  
+    }
+  },[isFocused])
   
+  function makeSearchList () {
+    console.log(`Searching for `)
+    if (search === null || search !== '') {
+      const searchTerm = search.toUpperCase()
+      const list = []
+      for(const game of fullBG) {
+        console.log(game["name"])
+        const nameCompare = game["name"].toUpperCase()
+        if (nameCompare.includes(searchTerm)) {
+          console.log(`match between ${searchTerm} and ${game.name}`)
+          list.push(game)
+        }
+      }
+      setSearchList(list)
+      console.log(`Searchlist: ${JSON.stringify(list)}`)
+    } else {
+      console.log("no search")
+      setSearchList([])
+    }
+  }
   
   const renderListItem = ({item}) => (
     <Pressable onPress = {() => {
@@ -75,19 +98,30 @@ function BoardgamesList ({navigation}) {
       <ListItem name = {item.name} />
     </Pressable>
   )
-
+//<Button title= "clear async" onPress = {() => AsyncStorage.clear()} />
   return (
     <View>
       <StatusBar translucent = {false} backgroundColor = '#306935'/>
-      <Button  title = "Add" onPress={() => navigation.navigate('Adder', {all: fullBG})}/>
+      <View>
+        <Button  title = "Add" onPress={() => navigation.navigate('Adder', {all: fullBG})}/>
 
-      <Button title = "Get from Async" onPress= {() => getData()} />
-      <Button title= "console all games" onPress= {() => console.log(fullBG)} />
-      <Button title= "clear async" onPress = {() => AsyncStorage.clear()} />
+        <Button title = "Refresh" onPress= {() => getData()} />
+        
+      </View>
+      <View>
+        <TextInput value = {search} onChangeText= {setSearch} onEndEditing = {makeSearchList}></TextInput>
+      </View>
+      {searchList.length > 0 ? 
+      <FlatList 
+        data = {searchList} 
+        renderItem = {renderListItem} 
+      />
+      :
       <FlatList 
           data = {fullBG} 
           renderItem = {renderListItem} 
       />
+      }   
     </View>
   );
 }
@@ -95,7 +129,7 @@ function BoardgamesList ({navigation}) {
 //details screen for when selecting a boardgame from the list, details are passed via route.params
 function BoardgamesDetails ({route, navigation}) {
   const {selected} = route.params;
-  useEffect(() => {console.log(`Details item is ${JSON.stringify(selected)}`)})
+  //useEffect(() => {console.log(`Details item is ${JSON.stringify(selected)}`)})
   return (
     <View>
       <View>
@@ -104,27 +138,33 @@ function BoardgamesDetails ({route, navigation}) {
       <View>
         <Text>Play count: {selected.plays}</Text>
         <Text>Last played: {selected.lastPlayed}</Text>
+        <Text>Rating: {selected.rating}</Text>
       </View>
     </View>
   )
 }
 
-//component rendered when user tries to add new game
+//page rendered when user tries to add new game
 function BoardgamesAdder ({route, navigation}) {
 
+  // all contains the full list of boardgames, so the new can be added to it and the new list overwrite its
   let {all} = route.params
+  //stateful properties edited by user and saved as new game
   const [ntitle, onChangeTitle] = React.useState("Title")
   const [nplays, onChangePlays] = React.useState("0")
   const [nrating, onChangeRating] =React.useState(0)
   const [nlastPlayed, setLastPlayed] = React.useState("Not set")
-
+  const [ncomments, setComments] = React.useState("")
+  //bool used for date picker
   const [isDatePickerVisible,setDatePickerVisibility] = useState(false)
 
+  /* old use effect for tracking the passed  list
   useEffect(() => {
     console.log('-----ADDER-----')
     console.log(`Full is now: ${JSON.stringify(all)}`)
     console.log(typeof all)
   }, [all])
+  */
 
   const showDatePicker = () => {
     setDatePickerVisibility(true);
@@ -135,11 +175,11 @@ function BoardgamesAdder ({route, navigation}) {
   };
 
   const handleConfirm = (date) => {
-    console.warn("A date has been picked: ", date);
+    //console.warn("A date has been picked: ", date);
     setLastPlayed(date)
     hideDatePicker();
   };
-
+  //function called to save properties using async storage and then navigate user out of adder
   const storeGame = async () => {
     try {
       const newgame = {
@@ -153,10 +193,9 @@ function BoardgamesAdder ({route, navigation}) {
 
       const combo = all.concat([newgame])
       const jsonValue = JSON.stringify(combo)
-      console.log('New:')
-      console.log(combo)
       await AsyncStorage.setItem('boardgames',jsonValue)
       navigation.navigate('List')
+
     } catch (e) {
       console.warn(`Error: ${e}`)
     }
@@ -194,6 +233,10 @@ function BoardgamesAdder ({route, navigation}) {
         onConfirm={handleConfirm}
         onCancel={hideDatePicker}
       />
+
+      <Text>Comments:</Text>
+      <TextInput value={ncomments} onChangeText={setComments}/>
+
       <Button title = "Add game" onPress={storeGame}></Button>
     </View>
   )
