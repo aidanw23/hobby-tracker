@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View, Button, StatusBar, Pressable, FlatList } from 'react-native';
+import { StyleSheet, Text, View, Button, StatusBar, Pressable, FlatList, Switch } from 'react-native';
 import React, {useEffect, useState} from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useIsFocused } from '@react-navigation/native';
@@ -43,10 +43,13 @@ const ListItem = ({name}) => {
 
 //Main menu flatlist of all added boardgames
 function BoardgamesList ({navigation}) {
+  //full list of boardgames read from Async
   const [fullBG, setFullBG] = useState([])
+  //search term entered
   const [search, setSearch] = useState()
+  //array of results using search
   const [searchList, setSearchList] = useState([])
-  const [test, setTest] = useState()
+  
   const isFocused = useIsFocused()
 
   const getData = async () => {
@@ -106,10 +109,11 @@ function BoardgamesList ({navigation}) {
         <Button  title = "Add" onPress={() => navigation.navigate('Adder', {all: fullBG})}/>
 
         <Button title = "Refresh" onPress= {() => getData()} />
+        <Button title = "Clear async" onPress = {() =>  AsyncStorage.clear()} />
         
       </View>
       <View>
-        <TextInput value = {search} onChangeText= {setSearch} onEndEditing = {makeSearchList}></TextInput>
+        <TextInput value = {search} onChangeText= {setSearch} onSubmitEditing = {makeSearchList}></TextInput>
       </View>
       {searchList.length > 0 ? 
       <FlatList 
@@ -126,20 +130,118 @@ function BoardgamesList ({navigation}) {
   );
 }
 
+
 //details screen for when selecting a boardgame from the list, details are passed via route.params
 function BoardgamesDetails ({route, navigation}) {
+  //selected: game object passed via
   const {selected} = route.params;
-  //useEffect(() => {console.log(`Details item is ${JSON.stringify(selected)}`)})
+  const [editable, setEditable] = useState(selected);
+  const [commentTemp, setCommentTemp] = useState(editable.comments)
+  const [owned, setOwned] = useState (editable.owned)
+  //bool used for date picker
+  const [isDatePickerVisible,setDatePickerVisibility] = useState(false)
+
+  //the two use effects below are to update editable when states change used for inputs
+  useEffect(() => {
+    setEditable((prev) => ({...prev, comments: commentTemp}))
+  }, [commentTemp])
+
+  useEffect(() => {
+    setEditable(prev => ({...prev, owned: owned}))
+  },[owned])
+
+  //following functions are for components eg. date picker, toggle switch etc.
+  const toggleSwitch = () => {
+    setOwned(previousState => !previousState);
+  }
+
+  const showDatePicker = () => {
+    setDatePickerVisibility(true);
+  };
+
+  const hideDatePicker = () => {
+    setDatePickerVisibility(false);
+  };
+
+  const handleConfirm = (date) => {
+    //console.warn("A date has been picked: ", date);
+    setEditable((prev) => ({...prev, lastPlayed: date}))
+    hideDatePicker();
+  };
+
+  function slideySlide (value) {
+    setEditable(prev => ({...prev, rating: value}))
+  }
+
+  //function called when save button is hit to replace whatever entry exists for name with editable that contains changes
+  async function saveChanges () {
+    try {
+      setEditable((prev) => ({...prev, comments: commentTemp}))
+      console.log(`comment should be: ${commentTemp}`)
+      const fullBG = await AsyncStorage.getItem('boardgames')
+      let savingFullBG = JSON.parse(fullBG)
+      for (let i = 0; i < savingFullBG.length; i ++) {
+        if (savingFullBG[i].name === editable.name) {
+          console.log(`Match found: ${JSON.stringify(savingFullBG[i])}`)
+          console.log(`Making it: ${JSON.stringify(editable)}`)
+          savingFullBG[i] = editable;
+        }
+      }
+      const stringed = JSON.stringify(savingFullBG)
+      AsyncStorage.setItem('boardgames', stringed)
+      navigation.goBack()
+    } catch (e) {
+      console.log(`Error saving changes: ${e}`)
+    }
+  }
+
   return (
     <View>
       <View>
-        <Text>{selected.name}</Text>
+        <Text>{editable.name}</Text>
       </View>
       <View>
-        <Text>Play count: {selected.plays}</Text>
-        <Text>Last played: {selected.lastPlayed}</Text>
-        <Text>Rating: {selected.rating}</Text>
+
+        <View>
+          <Text>Play count:</Text>
+          <Button title = "-" onPress={() => setEditable((prev) => ({...prev, plays: +prev.plays - 1}))}></Button>
+          <Text>{editable.plays}</Text>
+          <Button title = "+" onPress={() => setEditable((prev) => ({...prev, plays: +prev.plays + 1}))}></Button>
+        </View>
+
+        <View>
+          <Text>Last played: {JSON.stringify(editable.lastPlayed)}</Text>
+          <Button title="Change date" onPress= {showDatePicker}></Button>
+          <DateTimePickerModal
+          isVisible={isDatePickerVisible}
+          mode="date"
+          onConfirm={handleConfirm}
+          onCancel={hideDatePicker}
+          />
+        </View>
+
+        <View>
+          <Text>Rating: {editable.rating}</Text>
+          <Slider 
+          minimumValue={1}
+          maximumValue={10}
+          step={0.5}
+          onValueChange={slideySlide}
+          value={editable.rating}
+          />
+        </View>
+
+        <View>
+          <Text>Comments</Text>
+          <TextInput value = {commentTemp} multiline = {true} onChangeText = {setCommentTemp}></TextInput>
+        </View>
+
+        <View>
+          <Text>Owned:</Text>
+          <Switch value= {owned} onValueChange={toggleSwitch}></Switch>
+        </View>
       </View>
+      <Button title = 'Save' onPress={saveChanges}></Button>
     </View>
   )
 }
@@ -186,7 +288,7 @@ function BoardgamesAdder ({route, navigation}) {
         name: ntitle,
         plays: nplays,
         rating: nrating,
-        comments: '',
+        comments: ncomments,
         lastPlayed: nlastPlayed,
         owned: true
       }
