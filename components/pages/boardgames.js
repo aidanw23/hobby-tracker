@@ -165,7 +165,10 @@ function BoardgamesDetails ({route, navigation}) {
 
   const handleConfirm = (date) => {
     //console.warn("A date has been picked: ", date);
-    setEditable((prev) => ({...prev, lastPlayed: date}))
+    console.warn(JSON.stringify(date))
+    let DTsplit = JSON.stringify(date).replace('"', '').split('T')
+    let newDate = DTsplit[0].split('-')
+    setEditable((prev) => ({...prev, lastPlayed: `${newDate[2]}/${newDate[1]}/${newDate[0]}`}))
     hideDatePicker();
   };
 
@@ -196,22 +199,26 @@ function BoardgamesDetails ({route, navigation}) {
   }
 
   return (
-    <View>
-      <View>
-        <Text>{editable.name}</Text>
+    <View style = {styles.detailsView}>
+      <View style = {styles.titleView}>
+        <Text style ={styles.title}>{editable.name}</Text>
       </View>
       <View>
 
-        <View>
-          <Text>Play count:</Text>
+        <View style={styles.counterView}>
+          <Text style= {styles.subtitle}>Play count:</Text>
           <Button title = "-" onPress={() => setEditable((prev) => ({...prev, plays: +prev.plays - 1}))}></Button>
-          <Text>{editable.plays}</Text>
+          <Text style= {styles.subtitle}>{editable.plays}</Text>
           <Button title = "+" onPress={() => setEditable((prev) => ({...prev, plays: +prev.plays + 1}))}></Button>
         </View>
 
-        <View>
-          <Text>Last played: {JSON.stringify(editable.lastPlayed)}</Text>
-          <Button title="Change date" onPress= {showDatePicker}></Button>
+        <View style={styles.basicView}>
+          <Text style= {styles.subtitle}>Last played: {editable.lastPlayed}</Text>
+          <View style= {styles.dateButtonContainerContainer}>
+            <View style = {styles.dateButtonContainer}>
+              <Button title="Change date" onPress= {showDatePicker} ></Button>
+            </View>
+          </View>
           <DateTimePickerModal
           isVisible={isDatePickerVisible}
           mode="date"
@@ -220,8 +227,8 @@ function BoardgamesDetails ({route, navigation}) {
           />
         </View>
 
-        <View>
-          <Text>Rating: {editable.rating}</Text>
+        <View style={styles.basicView}>
+          <Text style= {styles.subtitle}>Rating: {editable.rating}</Text>
           <Slider 
           minimumValue={1}
           maximumValue={10}
@@ -231,17 +238,19 @@ function BoardgamesDetails ({route, navigation}) {
           />
         </View>
 
-        <View>
-          <Text>Comments</Text>
-          <TextInput value = {commentTemp} multiline = {true} onChangeText = {setCommentTemp}></TextInput>
+        <View style={styles.basicView}>
+          <Text style= {styles.subtitle}>Comments</Text>
+          <TextInput value = {commentTemp} multiline = {true} onChangeText = {setCommentTemp} style = {styles.commentBox}></TextInput>
         </View>
 
-        <View>
-          <Text>Owned:</Text>
+        <View style = {styles.ownedView}>
+          <Text style= {styles.subtitle}>Owned:</Text>
           <Switch value= {owned} onValueChange={toggleSwitch}></Switch>
         </View>
       </View>
-      <Button title = 'Save' onPress={saveChanges}></Button>
+      <View style={styles.saveContainer}>
+        <Button title = 'Save' onPress={saveChanges}></Button>
+      </View>
     </View>
   )
 }
@@ -356,14 +365,71 @@ const styles = StyleSheet.create({
       paddingLeft: 40,
       paddingTop: 10,
     },
-    title: {
-      fontSize: 20,
+    //DETAILS
+    detailsView: {
+      flex: 1,
+      backgroundColor: '#fff'
     },
+    title: {
+      fontSize: 30,
+      textShadowColor: '#bababa',
+      textShadowOffset: {width: -1, height: 1},
+      textShadowRadius: 5
+    },
+    titleView: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: 20,
+      backgroundColor: 'whitesmoke',
+      borderBottomColor: '#dedede',
+      borderBottomWidth: 2,
+    },
+    subtitle: {
+      fontSize:18,
+      padding:6,
+      marginLeft: 10
+    },
+    counterView: {
+      flexDirection: 'row',
+      paddingTop:10
+    },
+    commentBox: {
+      fontsize:14,
+      borderWidth: 1,
+      borderColor: '#306935',
+      margin: 5,
+      padding: 5,
+      backgroundColor: 'whitesmoke'
+    },
+    ownedView: {
+      flexDirection: 'row',
+    },
+    dateContainer: {
+      flexDirection: 'row'
+    },
+    dateButtonContainer: {
+      width: '50%',
+    },
+    dateButtonContainer: {
+      justifyContent: 'center',
+      alignItems: 'center'
+    },
+    basicView: {
+      
+    },
+    saveContainer: {
+      marginBottom: 40,
+      backgroundColor: 'whitesmoke',
+      borderBottomColor: '#cccccc',
+      borderBottomWidth: 2,
+    },
+
     toolbar: {
       flex: 1,
       justifyContent:'space-evenly',
       margin: 20,
     },
+    //LIST
     list:{
       borderColor:'#306935',
       borderWidth:1,
