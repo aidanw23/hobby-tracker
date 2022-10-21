@@ -6,6 +6,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { TextInput } from 'react-native';
 import Slider from '@react-native-community/slider';
 import DateTimePickerModal from "react-native-modal-datetime-picker";
+import DropDownPicker from "react-native-dropdown-picker"
 
 
 
@@ -24,8 +25,8 @@ export default function Boardgames () {
         component={BoardgamesDetails}
       />
       <BoardgamesStack.Screen 
-        name="Adder"
-        component={BoardgamesAdder}
+        name="QuickAdder"
+        component={QuickAdder}
       />
     </BoardgamesStack.Navigator>
   )
@@ -33,12 +34,29 @@ export default function Boardgames () {
 
 
 // List item for the flat list
-const ListItem = ({name}) => {
+const ListItem = ({name, sort, rating, plays}) => {
+  if (sort === 'none' || sort == null || sort == 'alphabetical') {
     return (     
-        <View style={styles.listItem}>
-          <Text style={styles.listText}>{name}</Text>
-        </View>
+      <View style={styles.listItem}>
+        <Text style={styles.listText}>{name}</Text>
+      </View>
     )
+  } else if (sort == 'rating') {
+    return  (
+      <View style={styles.listItem}>
+        <Text style={styles.listText}>{name}</Text>
+        <Text>Rated: {rating}</Text>
+      </View>
+    )
+  } else if (sort == 'most played') {
+    return  (
+      <View style={styles.listItem}>
+        <Text style={styles.listText}>{name}</Text>
+        <Text>Plays: {plays}</Text>
+      </View>
+    )
+  }
+  
 }
 
 //Main menu flatlist of all added boardgames
@@ -46,20 +64,28 @@ function BoardgamesList ({navigation}) {
   //full list of boardgames read from Async
   const [fullBG, setFullBG] = useState([])
   //search term entered
-  const [search, setSearch] = useState()
+  const [search, setSearch] = useState('')
   //array of results using search
   const [searchList, setSearchList] = useState([])
-  
+
+  const [ddOpen, setDDOpen] = useState(false)
+  const [ddValue, setDDValue] = useState(null)
+  const [ddItems, setDDItems] = useState ([
+    {label: '-', value: 'none'},
+    {label:'Alphabetical', value: 'alphabetical'},
+    {label:'Rating', value: 'rating'},
+    {label: 'Most Played', value: 'most played'}
+  ])
+
   const isFocused = useIsFocused()
 
   const getData = async () => {
     try {
       const value = await AsyncStorage.getItem('boardgames')
-      console.log(value)
+      //console.log(value)
       if(value !== null) {
         setFullBG(JSON.parse(value))
       }
-      console.log(`FullBG is currently: ${JSON.stringify(fullBG)}`)
     } catch(e) {
       console.warn("Boardgame list not read")
     }
@@ -67,53 +93,86 @@ function BoardgamesList ({navigation}) {
 
   //autorefreshes page when its returned to for deleting or adding purposes
   useEffect (() => {
-    console.log(searchList)
-    if (isFocused) {
-      getData()  
-    }
+    getData()    
   },[isFocused])
   
+  useEffect (() => {
+    makeSearchList()
+  },[ddValue])
+  
   function makeSearchList () {
-    console.log(`Searching for `)
-    if (search === null || search !== '') {
+    console.log(search)
+    let list = []
+    if (search !== '') {
       const searchTerm = search.toUpperCase()
-      const list = []
       for(const game of fullBG) {
-        console.log(game["name"])
+        //console.log(game["name"])
         const nameCompare = game["name"].toUpperCase()
         if (nameCompare.includes(searchTerm)) {
-          console.log(`match between ${searchTerm} and ${game.name}`)
+          //console.log(`match between ${searchTerm} and ${game.name}`)
           list.push(game)
         }
       }
-      setSearchList(list)
-      console.log(`Searchlist: ${JSON.stringify(list)}`)
     } else {
-      console.log("no search")
-      setSearchList([])
+      list = fullBG
     }
+    sortList(list)
+    setSearchList(list)
+    getData()
+    
+  }
+
+  function sortList (list) {
+    let sortedList = list;
+    switch (ddValue) {
+      case 'none':
+        break
+      case 'alphabetical':
+        sortedList.sort((a,b) => a.name.localeCompare(b.name))
+        //console.log(`Alphabetised: ${JSON.stringify(sortedList)}`)
+        break;
+      case 'rating':
+        sortedList.sort((a,b) => b.rating - a.rating)
+        //console.log(`Rating: ${JSON.stringify(sortedList)}`)
+        break;
+      case 'most played':
+        sortedList.sort((a,b) => b.plays - a.plays)
+        //console.log(`Most Played: ${JSON.stringify(sortedList)}`)
+    }
+    return sortedList;
   }
   
   const renderListItem = ({item}) => (
     <Pressable onPress = {() => {
         navigation.navigate('Details', {selected: item})
       }}>
-      <ListItem name = {item.name} />
+      <ListItem name = {item.name}  sort = {ddValue} rating = {item.rating} plays = {item.plays}/>
     </Pressable>
   )
 //<Button title= "clear async" onPress = {() => AsyncStorage.clear()} />
   return (
-    <View>
+    <View style = {styles.listBG}>
       <StatusBar translucent = {false} backgroundColor = '#306935'/>
       <View>
         <Button  title = "Add" onPress={() => navigation.navigate('Adder', {all: fullBG})}/>
+        <Button  title = "Quick Add" onPress={() => navigation.navigate('QuickAdder', {all: fullBG})}/>
 
         <Button title = "Refresh" onPress= {() => getData()} />
         <Button title = "Clear async" onPress = {() =>  AsyncStorage.clear()} />
         
       </View>
       <View>
-        <TextInput value = {search} onChangeText= {setSearch} onSubmitEditing = {makeSearchList}></TextInput>
+        <DropDownPicker 
+          open = {ddOpen}
+          value = {ddValue}
+          items = {ddItems}
+          setOpen = {setDDOpen}
+          setValue = {setDDValue}
+          setItems = {setDDItems}
+        />
+      </View>
+      <View>
+        <TextInput placeholder='Search' style = {styles.searchBox} value = {search} onChangeText= {setSearch} onSubmitEditing = {makeSearchList}></TextInput>
       </View>
       {searchList.length > 0 ? 
       <FlatList 
@@ -255,54 +314,26 @@ function BoardgamesDetails ({route, navigation}) {
   )
 }
 
-//page rendered when user tries to add new game
-function BoardgamesAdder ({route, navigation}) {
+function QuickAdder ({route, navigation}) {
 
-  // all contains the full list of boardgames, so the new can be added to it and the new list overwrite its
-  let {all} = route.params
-  //stateful properties edited by user and saved as new game
-  const [ntitle, onChangeTitle] = React.useState("Title")
-  const [nplays, onChangePlays] = React.useState("0")
-  const [nrating, onChangeRating] =React.useState(0)
-  const [nlastPlayed, setLastPlayed] = React.useState("Not set")
-  const [ncomments, setComments] = React.useState("")
-  //bool used for date picker
-  const [isDatePickerVisible,setDatePickerVisibility] = useState(false)
+  let {all} = route.params;
+  const [name, setName] = useState('')
 
-  /* old use effect for tracking the passed  list
-  useEffect(() => {
-    console.log('-----ADDER-----')
-    console.log(`Full is now: ${JSON.stringify(all)}`)
-    console.log(typeof all)
-  }, [all])
-  */
-
-  const showDatePicker = () => {
-    setDatePickerVisibility(true);
-  };
-
-  const hideDatePicker = () => {
-    setDatePickerVisibility(false);
-  };
-
-  const handleConfirm = (date) => {
-    //console.warn("A date has been picked: ", date);
-    setLastPlayed(date)
-    hideDatePicker();
-  };
-  //function called to save properties using async storage and then navigate user out of adder
   const storeGame = async () => {
+    console.log(`Adding ${name}`)
     try {
       const newgame = {
-        name: ntitle,
-        plays: nplays,
-        rating: nrating,
-        comments: ncomments,
-        lastPlayed: nlastPlayed,
+        name: name,
+        plays: 0,
+        rating: 1,
+        comments: '',
+        lastPlayed: 'Not set',
         owned: true
       }
 
       const combo = all.concat([newgame])
+      console.log(combo)
+      console.table(combo)
       const jsonValue = JSON.stringify(combo)
       await AsyncStorage.setItem('boardgames',jsonValue)
       navigation.navigate('List')
@@ -310,48 +341,23 @@ function BoardgamesAdder ({route, navigation}) {
     } catch (e) {
       console.warn(`Error: ${e}`)
     }
-
   }
 
   return (
-    <View>
-      <Text>Add a new game</Text>
-      <View>
-        <Text>Title:</Text>
-        <TextInput value={ntitle} onChangeText={onChangeTitle}/>
+    <View style = {styles.qaView}>
+      <View >
+        <Text style= {styles.qaTitle}> What is the name of your new game?</Text>
       </View>
-
-      <Text>No. of plays:</Text>
-      <TextInput value={nplays} onChangeText={onChangePlays}/>
-
-      <Text>Rating:</Text>
-      <Text>{nrating}</Text>
-      <Slider 
-        minimumValue={1}
-        maximumValue={10}
-        step={0.5}
-        onValueChange={onChangeRating}
-      />
-
-      <Text>Last Played:</Text>
-      <Pressable onPress={showDatePicker}>
-        <Text>Please select date</Text>
-      </Pressable>
-      <Text>{JSON.stringify(nlastPlayed)}</Text>
-      <DateTimePickerModal
-        isVisible={isDatePickerVisible}
-        mode="date"
-        onConfirm={handleConfirm}
-        onCancel={hideDatePicker}
-      />
-
-      <Text>Comments:</Text>
-      <TextInput value={ncomments} onChangeText={setComments}/>
-
-      <Button title = "Add game" onPress={storeGame}></Button>
+      <View>
+        <TextInput value = {name} onChangeText = {setName} style = {styles.qaInput}></TextInput>
+        <View styles={styles.qaButton}>
+          <Button title = "Add game" onPress={storeGame}></Button>
+        </View>
+      </View>
     </View>
   )
 }
+
 
 const styles = StyleSheet.create({
     container: {
@@ -429,11 +435,36 @@ const styles = StyleSheet.create({
       justifyContent:'space-evenly',
       margin: 20,
     },
+    //QUICK ADD
+    qaView: {
+      flex:1,
+      justifyContent: 'center'
+    },
+    qaTitle: {
+      textAlign: 'center',
+      fontSize: 20,
+      paddingTop: 20,
+      paddingBottom: 20
+    },
+    qaInput: {
+      fontSize: 18,
+      borderWidth: 1,
+      borderColor: '#306935',
+      margin: 15,
+      padding: 10,
+      backgroundColor: 'whitesmoke'
+    },
+    qaButton:{
+      width:'50%'
+    },
     //LIST
     list:{
       borderColor:'#306935',
       borderWidth:1,
     },
+    listBG: {
+      backgroundColor: '#cfcfcf'
+    },  
     listItem:{
       flexDirection: 'row',
       justifyContent: 'space-between',
@@ -449,6 +480,14 @@ const styles = StyleSheet.create({
     },
     listText: {
       fontSize: 16,
+    },
+    searchBox: {
+      fontsize:14,
+      borderWidth: 1,
+      borderColor: '#306935',
+      margin: 5,
+      padding: 5,
+      backgroundColor: 'whitesmoke'
     },
     listButton: {
       backgroundColor: '#fff',
