@@ -1,12 +1,13 @@
-import { StyleSheet, Text, View, Button, StatusBar, Pressable, FlatList, Switch } from 'react-native';
-import React, {useEffect, useState} from 'react';
+import { StyleSheet, Text, View, Button, StatusBar, Pressable, FlatList, Switch, Alert } from 'react-native';
+import React, {useCallback, useEffect, useState} from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { useIsFocused } from '@react-navigation/native';
+import { useIsFocused, useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { TextInput } from 'react-native';
 import Slider from '@react-native-community/slider';
 import DateTimePickerModal from "react-native-modal-datetime-picker";
-import DropDownPicker from "react-native-dropdown-picker"
+import DropDownPicker from "react-native-dropdown-picker";
+import ImagePicker from 'react-native-image-picker';
 
 
 
@@ -92,16 +93,22 @@ function BoardgamesList ({navigation}) {
   }
 
   //autorefreshes page when its returned to for deleting or adding purposes
-  useEffect (() => {
-    getData()    
-  },[isFocused])
-  
+  useFocusEffect (
+    useCallback(() => {
+
+      getData()
+      setSearch('')
+      setSearchList([])
+    },[isFocused])
+  )
+  //sorts list when dropdown option is selected
   useEffect (() => {
     makeSearchList()
+    getData()
   },[ddValue])
   
+  
   function makeSearchList () {
-    console.log(search)
     let list = []
     if (search !== '') {
       const searchTerm = search.toUpperCase()
@@ -114,12 +121,26 @@ function BoardgamesList ({navigation}) {
         }
       }
     } else {
-      list = fullBG
+      list = []
     }
-    sortList(list)
+    if (list.length === 0 && search !== '') {
+      Alert.alert(
+        "No results",
+        "No matching titles were found in your collection!",
+        [
+          {
+            text: 'OK'
+          }
+        ]
+      )
+    }
+    if(ddValue !== 'none') {
+      if (list.length == 0) {
+        list = fullBG
+      }
+      sortList(list)
+    }
     setSearchList(list)
-    getData()
-    
   }
 
   function sortList (list) {
@@ -143,9 +164,10 @@ function BoardgamesList ({navigation}) {
   }
   
   const renderListItem = ({item}) => (
-    <Pressable onPress = {() => {
-        navigation.navigate('Details', {selected: item})
-      }}>
+    <Pressable onPress= {() => {
+        navigation.navigate('Details',{selected: item})
+      }}
+      onLongPress = {() => {}}>
       <ListItem name = {item.name}  sort = {ddValue} rating = {item.rating} plays = {item.plays}/>
     </Pressable>
   )
@@ -154,10 +176,7 @@ function BoardgamesList ({navigation}) {
     <View style = {styles.listBG}>
       <StatusBar translucent = {false} backgroundColor = '#306935'/>
       <View>
-        <Button  title = "Add" onPress={() => navigation.navigate('Adder', {all: fullBG})}/>
         <Button  title = "Quick Add" onPress={() => navigation.navigate('QuickAdder', {all: fullBG})}/>
-
-        <Button title = "Refresh" onPress= {() => getData()} />
         <Button title = "Clear async" onPress = {() =>  AsyncStorage.clear()} />
         
       </View>
@@ -174,17 +193,21 @@ function BoardgamesList ({navigation}) {
       <View>
         <TextInput placeholder='Search' style = {styles.searchBox} value = {search} onChangeText= {setSearch} onSubmitEditing = {makeSearchList}></TextInput>
       </View>
-      {searchList.length > 0 ? 
-      <FlatList 
-        data = {searchList} 
-        renderItem = {renderListItem} 
-      />
-      :
-      <FlatList 
-          data = {fullBG} 
+      <View style = {styles.flatListContainer}>
+        {searchList.length > 0 ? 
+        <FlatList 
+          data = {searchList} 
+          extraData = {searchList}
           renderItem = {renderListItem} 
-      />
-      }   
+        />
+        :
+        <FlatList 
+            data = {fullBG} 
+            extraData = {fullBG}
+            renderItem = {renderListItem} 
+        />
+        }   
+      </View>
     </View>
   );
 }
@@ -238,8 +261,6 @@ function BoardgamesDetails ({route, navigation}) {
   //function called when save button is hit to replace whatever entry exists for name with editable that contains changes
   async function saveChanges () {
     try {
-      setEditable((prev) => ({...prev, comments: commentTemp}))
-      console.log(`comment should be: ${commentTemp}`)
       const fullBG = await AsyncStorage.getItem('boardgames')
       let savingFullBG = JSON.parse(fullBG)
       for (let i = 0; i < savingFullBG.length; i ++) {
@@ -463,7 +484,8 @@ const styles = StyleSheet.create({
       borderWidth:1,
     },
     listBG: {
-      backgroundColor: '#cfcfcf'
+      backgroundColor: '#cfcfcf',
+      
     },  
     listItem:{
       flexDirection: 'row',
@@ -488,6 +510,9 @@ const styles = StyleSheet.create({
       margin: 5,
       padding: 5,
       backgroundColor: 'whitesmoke'
+    },
+    flatListContainer:{
+      maxHeight:'80%'
     },
     listButton: {
       backgroundColor: '#fff',
