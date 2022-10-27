@@ -7,7 +7,6 @@ import { TextInput } from 'react-native';
 import Slider from '@react-native-community/slider';
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 import DropDownPicker from "react-native-dropdown-picker";
-import ImagePicker from 'react-native-image-picker';
 
 
 
@@ -258,6 +257,9 @@ function BoardgamesDetails ({route, navigation}) {
     setEditable(prev => ({...prev, rating: value}))
   }
 
+  async function addImage () {
+    
+  }
   //function called when save button is hit to replace whatever entry exists for name with editable that contains changes
   async function saveChanges () {
     try {
@@ -284,7 +286,10 @@ function BoardgamesDetails ({route, navigation}) {
         <Text style ={styles.title}>{editable.name}</Text>
       </View>
       <View>
-
+      {selected.image ? 
+      <Image></Image>:
+      <Button title= 'Add an image' onPress={addImage}></Button>
+      }
         <View style={styles.counterView}>
           <Text style= {styles.subtitle}>Play count:</Text>
           <Button title = "-" onPress={() => setEditable((prev) => ({...prev, plays: +prev.plays - 1}))}></Button>
