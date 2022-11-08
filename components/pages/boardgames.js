@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View, Button, StatusBar, Pressable, FlatList, Switch, Alert } from 'react-native';
+import { ScrollView, StyleSheet, Text, View, Button, StatusBar, Pressable, FlatList, Switch, Alert, Image } from 'react-native';
 import React, {useCallback, useEffect, useState} from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useIsFocused, useFocusEffect } from '@react-navigation/native';
@@ -7,7 +7,7 @@ import { TextInput } from 'react-native';
 import Slider from '@react-native-community/slider';
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 import DropDownPicker from "react-native-dropdown-picker";
-import ImagePicker from 'react-native-image-picker';
+import * as ImagePicker from 'expo-image-picker';
 
 
 
@@ -175,23 +175,25 @@ function BoardgamesList ({navigation}) {
   return (
     <View style = {styles.listBG}>
       <StatusBar translucent = {false} backgroundColor = '#306935'/>
-      <View>
-        <Button  title = "Quick Add" onPress={() => navigation.navigate('QuickAdder', {all: fullBG})}/>
-        <Button title = "Clear async" onPress = {() =>  AsyncStorage.clear()} />
-        
+      <View style = {styles.listHeader}>
+        <Pressable style = {styles.addGameButton} onPress={() => navigation.navigate('QuickAdder', {all: fullBG})}> 
+            <Text style = {styles.headerText}>+</Text>
+        </Pressable>
       </View>
-      <View>
-        <DropDownPicker 
-          open = {ddOpen}
-          value = {ddValue}
-          items = {ddItems}
-          setOpen = {setDDOpen}
-          setValue = {setDDValue}
-          setItems = {setDDItems}
-        />
-      </View>
-      <View>
-        <TextInput placeholder='Search' style = {styles.searchBox} value = {search} onChangeText= {setSearch} onSubmitEditing = {makeSearchList}></TextInput>
+      <View style = {styles.searchAndSortContainer}>
+        <View style = {styles.sortContainer}>
+          <DropDownPicker 
+            open = {ddOpen}
+            value = {ddValue}
+            items = {ddItems}
+            setOpen = {setDDOpen}
+            setValue = {setDDValue}
+            setItems = {setDDItems}
+          />
+        </View>
+        <View style = {styles.searchContainer}>
+          <TextInput placeholder='Search' style = {styles.searchBox} value = {search} onChangeText= {setSearch} onSubmitEditing = {makeSearchList}></TextInput>
+        </View>
       </View>
       <View style = {styles.flatListContainer}>
         {searchList.length > 0 ? 
@@ -222,6 +224,7 @@ function BoardgamesDetails ({route, navigation}) {
   const [owned, setOwned] = useState (editable.owned)
   //bool used for date picker
   const [isDatePickerVisible,setDatePickerVisibility] = useState(false)
+  const [imageURI, setImageURI] = useState (editable.image)
 
   //the two use effects below are to update editable when states change used for inputs
   useEffect(() => {
@@ -231,6 +234,10 @@ function BoardgamesDetails ({route, navigation}) {
   useEffect(() => {
     setEditable(prev => ({...prev, owned: owned}))
   },[owned])
+
+  useEffect (() => {
+    setEditable(prev => ({...prev, image: imageURI}))
+  }, [imageURI])
 
   //following functions are for components eg. date picker, toggle switch etc.
   const toggleSwitch = () => {
@@ -258,6 +265,15 @@ function BoardgamesDetails ({route, navigation}) {
     setEditable(prev => ({...prev, rating: value}))
   }
 
+  async function addImage () {
+    let result = await ImagePicker.launchImageLibraryAsync({
+    })
+    console.log(result.uri)
+    if (!result.cancelled) {
+      setImageURI(result.uri);
+    }
+  }
+
   //function called when save button is hit to replace whatever entry exists for name with editable that contains changes
   async function saveChanges () {
     try {
@@ -279,24 +295,32 @@ function BoardgamesDetails ({route, navigation}) {
   }
 
   return (
-    <View style = {styles.detailsView}>
-      <View style = {styles.titleView}>
-        <Text style ={styles.title}>{editable.name}</Text>
-      </View>
+    <ScrollView style = {styles.detailsPage}>
+      <View style = {styles.detailsView}>
+        <View style = {styles.titleView}>
+          <Text style ={styles.title}>{editable.name}</Text>
+        </View>
+        <View style = {styles.imageView}>
+          {editable.image? 
+          <Pressable onPress={addImage}>
+            <Image source = {{uri: editable.image}} style = {styles.detailsImage} resizeMode='contain' ></Image>
+          </Pressable>
+          :
+          <Button color ='#306935' title = 'Add an image' onPress={addImage}></Button>}
+        </View>
       <View>
-
         <View style={styles.counterView}>
           <Text style= {styles.subtitle}>Play count:</Text>
-          <Button title = "-" onPress={() => setEditable((prev) => ({...prev, plays: +prev.plays - 1}))}></Button>
+          <Button color ='#306935' title = "-" onPress={() => setEditable((prev) => ({...prev, plays: +prev.plays - 1}))}></Button>
           <Text style= {styles.subtitle}>{editable.plays}</Text>
-          <Button title = "+" onPress={() => setEditable((prev) => ({...prev, plays: +prev.plays + 1}))}></Button>
+          <Button color ='#306935' title = "+" onPress={() => setEditable((prev) => ({...prev, plays: +prev.plays + 1}))}></Button>
         </View>
 
         <View style={styles.basicView}>
           <Text style= {styles.subtitle}>Last played: {editable.lastPlayed}</Text>
           <View style= {styles.dateButtonContainerContainer}>
             <View style = {styles.dateButtonContainer}>
-              <Button title="Change date" onPress= {showDatePicker} ></Button>
+              <Button color ='#306935' title="Change date" onPress= {showDatePicker} ></Button>
             </View>
           </View>
           <DateTimePickerModal
@@ -329,9 +353,10 @@ function BoardgamesDetails ({route, navigation}) {
         </View>
       </View>
       <View style={styles.saveContainer}>
-        <Button title = 'Save' onPress={saveChanges}></Button>
+        <Button color ='#306935' title = 'Save' onPress={saveChanges}></Button>
       </View>
     </View>
+  </ScrollView>
   )
 }
 
@@ -371,8 +396,8 @@ function QuickAdder ({route, navigation}) {
       </View>
       <View>
         <TextInput value = {name} onChangeText = {setName} style = {styles.qaInput}></TextInput>
-        <View styles={styles.qaButton}>
-          <Button title = "Add game" onPress={storeGame}></Button>
+        <View style = {styles.qaButtonView}>
+          <Button style={styles.qaButton} onPress={storeGame} color ='#306935' title = 'Add game'/>
         </View>
       </View>
     </View>
@@ -381,6 +406,7 @@ function QuickAdder ({route, navigation}) {
 
 
 const styles = StyleSheet.create({
+
     container: {
       backgroundColor: '#fff',
       alignItems: 'center',
@@ -392,7 +418,11 @@ const styles = StyleSheet.create({
       paddingLeft: 40,
       paddingTop: 10,
     },
+
     //DETAILS
+    detailsPage: {
+      flex: 1,
+    },
     detailsView: {
       flex: 1,
       backgroundColor: '#fff'
@@ -415,6 +445,14 @@ const styles = StyleSheet.create({
       fontSize:18,
       padding:6,
       marginLeft: 10
+    },
+    imageView: {
+      alignItems:'center',
+      justifyContent:'center'
+    },
+    detailsImage: {
+      width: '90%',
+      aspectRatio: 1
     },
     counterView: {
       flexDirection: 'row',
@@ -445,7 +483,7 @@ const styles = StyleSheet.create({
       
     },
     saveContainer: {
-      marginBottom: 40,
+      marginBottom: 20,
       backgroundColor: 'whitesmoke',
       borderBottomColor: '#cccccc',
       borderBottomWidth: 2,
@@ -456,6 +494,7 @@ const styles = StyleSheet.create({
       justifyContent:'space-evenly',
       margin: 20,
     },
+
     //QUICK ADD
     qaView: {
       flex:1,
@@ -475,17 +514,57 @@ const styles = StyleSheet.create({
       padding: 10,
       backgroundColor: 'whitesmoke'
     },
-    qaButton:{
-      width:'50%'
+    qaButtonView: {
+      justifyContent: 'center',
+      alignItems: 'center',
+      height: '20%'
     },
+    qaButton:{
+      width:'50%',
+      height:'100%'
+    },
+    qaButtonText: {
+
+    },
+    
     //LIST
     list:{
       borderColor:'#306935',
       borderWidth:1,
     },
+    listHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      height: '10%',
+      width: '100%',
+      backgroundColor: '#306935',
+      marginBottom: 20,
+    },
+    addGameButton: {
+      width: '20%',
+      height: '100%',
+      justifyContent: 'center',
+      alignItems: 'center'
+    },
+    headerText: {
+      color: '#ffffff',
+      fontSize: 25
+    },
+    searchAndSortContainer: {
+      flexDirection: 'row',
+      paddingBottom: 10
+    },
+    searchContainer: {
+      width: '60%',
+      flexGrow:4
+    },
+    sortContainer: {
+      width: '35%',
+      flexGrow:1
+    },
     listBG: {
       backgroundColor: '#cfcfcf',
-      
+      height: '100%'
     },  
     listItem:{
       flexDirection: 'row',
@@ -493,12 +572,12 @@ const styles = StyleSheet.create({
       alignItems:'center',
   
       height: 60,
-      margin: 5,
+      margin: 0,
       padding: 10,
   
       backgroundColor:'#fff',
-      borderColor: '#306935',
-      borderWidth: 1,
+      borderTopColor: '#cfcfcf',
+      borderTopWidth: 1,
     },
     listText: {
       fontSize: 16,
@@ -512,7 +591,9 @@ const styles = StyleSheet.create({
       backgroundColor: 'whitesmoke'
     },
     flatListContainer:{
-      maxHeight:'80%'
+      height:'80%',
+      borderBottomColor: '#306935',
+      borderBottomWidth: 0
     },
     listButton: {
       backgroundColor: '#fff',
