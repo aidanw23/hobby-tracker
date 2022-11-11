@@ -294,9 +294,18 @@ function BoardgamesDetails ({route, navigation}) {
     }
   }
 
+  function testPress (){
+    console.warn('It worked')
+  }
+
   return (
     <ScrollView style = {styles.detailsPage}>
       <View style = {styles.detailsView}>
+          <View style = {styles.deleteBar}>
+            <Pressable onPress = {deleteGame}>
+              <Image style = {styles.bin} source = {require('../../assets/binning.png')} /> 
+            </Pressable>
+          </View>
         <View style = {styles.titleView}>
           <Text style ={styles.title}>{editable.name}</Text>
         </View>
@@ -427,6 +436,16 @@ const styles = StyleSheet.create({
       flex: 1,
       backgroundColor: '#fff'
     },
+    deleteBar: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      backgroundColor: '#E9E9E9'
+    },
+    bin: {
+      height:30,
+      width:30,
+      margin: 10
+    },
     title: {
       fontSize: 30,
       textShadowColor: '#bababa',
@@ -436,8 +455,10 @@ const styles = StyleSheet.create({
     titleView: {
       alignItems: 'center',
       justifyContent: 'center',
-      padding: 20,
-      backgroundColor: 'whitesmoke',
+      paddingLeft: 30 ,
+      paddingRight: 30 ,
+      paddingBottom: 30 ,
+      backgroundColor: '#E9E9E9',
       borderBottomColor: '#dedede',
       borderBottomWidth: 2,
     },
