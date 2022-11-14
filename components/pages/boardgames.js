@@ -39,25 +39,24 @@ const ListItem = ({name, sort, rating, plays}) => {
   if (sort === 'none' || sort == null || sort == 'alphabetical') {
     return (     
       <View style={styles.listItem}>
-        <Text style={styles.listText}>{name}</Text>
+        <Text style={styles.listText} numberOfLines = {1} ellipsizeMode ='tail' >{name}</Text>
       </View>
     )
   } else if (sort == 'rating') {
     return  (
       <View style={styles.listItem}>
-        <Text style={styles.listText}>{name}</Text>
+        <Text style={styles.listText} numberOfLines = {1} ellipsizeMode ='tail'>{name}</Text>
         <Text>Rated: {rating}</Text>
       </View>
     )
   } else if (sort == 'most played') {
     return  (
       <View style={styles.listItem}>
-        <Text style={styles.listText}>{name}</Text>
+        <Text style={styles.listText} numberOfLines = {1} ellipsizeMode ='tail'>{name}</Text>
         <Text>Plays: {plays}</Text>
       </View>
     )
   }
-  
 }
 
 //Main menu flatlist of all added boardgames
@@ -294,15 +293,44 @@ function BoardgamesDetails ({route, navigation}) {
     }
   }
 
-  function testPress (){
-    console.warn('It worked')
+  async function deleteGame (){
+    const fullBG = await AsyncStorage.getItem('boardgames');
+    let parsedBG = JSON.parse(fullBG);
+    let newBG = []
+    for (let i = 0; i < parsedBG.length; i ++) {
+      if (parsedBG[i].name !== editable.name) {
+        newBG.push(parsedBG[i])
+      } else {
+        console.log(`Matching entry removed: ${parsedBG[i].name}`)
+      }
+    }
+    const stringed = JSON.stringify(newBG)
+    AsyncStorage.setItem('boardgames', stringed)
+    navigation.goBack()   
+  }
+
+  function deleteAlert () {
+    Alert.alert(
+      "Are you sure?",
+      "Deleting a game can not be undone!",
+      [
+        {
+          text: 'No, go back',
+          onPress: () => console.warn("Deletion cancelled")
+        },
+        {
+          text: "Yes, I'm sure",
+          onPress: () => deleteGame()
+        }
+      ]
+    )
   }
 
   return (
     <ScrollView style = {styles.detailsPage}>
       <View style = {styles.detailsView}>
           <View style = {styles.deleteBar}>
-            <Pressable onPress = {deleteGame}>
+            <Pressable onPress = {deleteAlert}>
               <Image style = {styles.bin} source = {require('../../assets/binning.png')} /> 
             </Pressable>
           </View>
@@ -310,12 +338,15 @@ function BoardgamesDetails ({route, navigation}) {
           <Text style ={styles.title}>{editable.name}</Text>
         </View>
         <View style = {styles.imageView}>
-          {editable.image? 
+          {editable.image ? 
           <Pressable onPress={addImage}>
             <Image source = {{uri: editable.image}} style = {styles.detailsImage} resizeMode='contain' ></Image>
           </Pressable>
           :
-          <Button color ='#306935' title = 'Add an image' onPress={addImage}></Button>}
+          <View style = {styles.imageButton}>
+            <Button color ='#306935' title = 'Add an image' onPress={addImage} style = {styles.imageButton}></Button>
+          </View>
+          }
         </View>
       <View>
         <View style={styles.counterView}>
@@ -469,7 +500,10 @@ const styles = StyleSheet.create({
     },
     imageView: {
       alignItems:'center',
-      justifyContent:'center'
+      justifyContent:'center',
+    },
+    imageButton: {
+      paddingTop: 10
     },
     detailsImage: {
       width: '90%',
@@ -602,6 +636,7 @@ const styles = StyleSheet.create({
     },
     listText: {
       fontSize: 16,
+      width: '75%'
     },
     searchBox: {
       fontsize:14,
