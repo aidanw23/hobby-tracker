@@ -33,7 +33,7 @@ export default function Books () {
 
 // List item for the flat list
 const ListItem = ({name, sort, rating, author, series}) => {
-  if (sort === 'none' || sort == null || sort == 'alphabetical') {
+  if (sort === 'none' || sort == null || sort == 'alphabetical' || sort == 'author' || sort == 'series') {
     return (
       <View style = {styles.listItem}>  
         <View style={styles.wideBookInfoListView}>
@@ -83,7 +83,9 @@ function BooksList ({navigation}) {
   const [ddItems, setDDItems] = useState ([
     {label: '-', value: 'none'},
     {label:'Alphabetical', value: 'alphabetical'},
-    {label:'Rating', value: 'rating'}
+    {label:'Rating', value: 'rating'},
+    {label:'Author', value:'author'},
+    {label:'Series', value:'series'}
   ])
 
   const isFocused = useIsFocused()
@@ -124,10 +126,13 @@ function BooksList ({navigation}) {
         //console.log(book["name"])
         const nameCompare = book["name"].toUpperCase()
         const authorCompare = book["author"].toUpperCase()
+        const seriesCompare = book["series"].toUpperCase()
         if (nameCompare.includes(searchTerm)) {
           //console.log(`match between ${searchTerm} and ${book.name}`)
           list.push(book)
         } else if (authorCompare.includes(searchTerm)) {
+          list.push(book)
+        } else if (seriesCompare.includes(searchTerm)) {
           list.push(book)
         }
       }
@@ -156,9 +161,10 @@ function BooksList ({navigation}) {
 
   function sortList (list) {
     let sortedList = list;
+    //console.log(`Sorting: ${list}`)
     switch (ddValue) {
       case 'none':
-        break
+        break;
       case 'alphabetical':
         sortedList.sort((a,b) => a.name.localeCompare(b.name))
         //console.log(`Alphabetised: ${JSON.stringify(sortedList)}`)
@@ -167,6 +173,12 @@ function BooksList ({navigation}) {
         sortedList.sort((a,b) => b.rating - a.rating)
         //console.log(`Rating: ${JSON.stringify(sortedList)}`)
         break;
+      case 'author':
+        sortedList.sort((a,b) => a.author.localeCompare(b.author))
+        //console.log(`Author: ${JSON.stringify(sortedList)}`)
+        break;
+      case 'series':
+        sortedList.sort((a,b) => b.series.localeCompare(a.series))
     }
     return sortedList;
   }
@@ -231,7 +243,8 @@ function BooksDetails ({route, navigation}) {
   const [author, setAuthor] = useState (editable.author)
   const [series, setSeries] = useState (editable.series)
   //bool used for date picker
-  const [isDatePickerVisible,setDatePickerVisibility] = useState(false)
+  const [isStartDatePickerVisible,setStartDatePickerVisibility] = useState(false)
+  const [isFinishDatePickerVisible,setFinishDatePickerVisibility] = useState(false)
   const [imageURI, setImageURI] = useState (editable.image)
 
   //the two use effects below are to update editable when states change used for inputs
@@ -256,12 +269,20 @@ function BooksDetails ({route, navigation}) {
     setOwned(previousState => !previousState);
   }*/
 
-  const showDatePicker = () => {
-    setDatePickerVisibility(true);
+  const showStartDatePicker = () => {
+    setStartDatePickerVisibility(true);
   };
 
-  const hideDatePicker = () => {
-    setDatePickerVisibility(false);
+  const hideStartDatePicker = () => {
+    setStartDatePickerVisibility(false);
+  };
+
+  const showFinishDatePicker = () => {
+    setFinishDatePickerVisibility(true);
+  };
+
+  const hideFinishDatePicker = () => {
+    setFinishDatePickerVisibility(false);
   };
 
   const handleLastConfirm = (date) => {
@@ -385,14 +406,14 @@ function BooksDetails ({route, navigation}) {
           <Text style= {styles.subtitle}>Date started: {editable.startDate}</Text>
           <View style= {styles.dateButtonContainerContainer}>
             <View style = {styles.dateButtonContainer}>
-              <Button color ='#306935' title="Change date" onPress= {showDatePicker} ></Button>
+              <Button color ='#306935' title="Change date" onPress= {showStartDatePicker} ></Button>
             </View>
           </View>
           <DateTimePickerModal
-          isVisible={isDatePickerVisible}
+          isVisible={isStartDatePickerVisible}
           mode="date"
           onConfirm={handleStartConfirm}
-          onCancel={hideDatePicker}
+          onCancel={hideStartDatePicker}
           />
         </View>
 
@@ -400,14 +421,14 @@ function BooksDetails ({route, navigation}) {
           <Text style= {styles.subtitle}>Date finished: {editable.finishDate}</Text>
           <View style= {styles.dateButtonContainerContainer}>
             <View style = {styles.dateButtonContainer}>
-              <Button color ='#306935' title="Change date" onPress= {showDatePicker} ></Button>
+              <Button color ='#306935' title="Change date" onPress= {showFinishDatePicker} ></Button>
             </View>
           </View>
           <DateTimePickerModal
-          isVisible={isDatePickerVisible}
+          isVisible={isFinishDatePickerVisible}
           mode="date"
           onConfirm={handleLastConfirm}
-          onCancel={hideDatePicker}
+          onCancel={hideFinishDatePicker}
           />
         </View>
 

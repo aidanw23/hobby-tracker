@@ -100,6 +100,7 @@ function BoardgamesList ({navigation}) {
       setSearchList([])
     },[isFocused])
   )
+  
   //sorts list when dropdown option is selected
   useEffect (() => {
     makeSearchList()
@@ -216,8 +217,9 @@ function BoardgamesList ({navigation}) {
 
 //details screen for when selecting a boardgame from the list, details are passed via route.params
 function BoardgamesDetails ({route, navigation}) {
-  //selected: game object passed via
+  //selected: game object passed via nav route
   const {selected} = route.params;
+  //editable is a copy of the selected game which will be changed up as user edits details
   const [editable, setEditable] = useState(selected);
   const [commentTemp, setCommentTemp] = useState(editable.comments)
   const [owned, setOwned] = useState (editable.owned)
@@ -383,7 +385,7 @@ function BoardgamesDetails ({route, navigation}) {
         </View>
 
         <View style={styles.basicView}>
-          <Text style= {styles.subtitle}>Comments</Text>
+          <Text style= {styles.subtitle}>Thoughts and notes:</Text>
           <TextInput value = {commentTemp} multiline = {true} onChangeText = {setCommentTemp} style = {styles.commentBox}></TextInput>
         </View>
 
