@@ -8,6 +8,7 @@ import Slider from '@react-native-community/slider';
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 import DropDownPicker from "react-native-dropdown-picker";
 import * as ImagePicker from 'expo-image-picker';
+import {styles} from './styles.js'
 
 
 
@@ -35,7 +36,7 @@ export default function Boardgames () {
 
 
 // List item for the flat list
-const ListItem = ({name, sort, rating, plays}) => {
+const ListItem = ({name, sort, rating, plays, lastPlayed}) => {
   if (sort === 'none' || sort == null || sort == 'alphabetical') {
     return (     
       <View style={styles.listItem}>
@@ -45,15 +46,28 @@ const ListItem = ({name, sort, rating, plays}) => {
   } else if (sort == 'rating') {
     return  (
       <View style={styles.listItem}>
-        <Text style={styles.listText} numberOfLines = {1} ellipsizeMode ='tail'>{name}</Text>
-        <Text>Rated: {rating}</Text>
+        <View style={styles.narrowInfoListView}>
+          <Text style={styles.listText} numberOfLines = {1} ellipsizeMode ='tail'>{name}</Text>
+        </View>
+        <Text style = {styles.listAttribute}>Rated: {rating}</Text>
       </View>
     )
   } else if (sort == 'most played') {
     return  (
       <View style={styles.listItem}>
-        <Text style={styles.listText} numberOfLines = {1} ellipsizeMode ='tail'>{name}</Text>
+        <View style = {styles.narrowInfoListView}>
+          <Text style={styles.listText} numberOfLines = {1} ellipsizeMode ='tail'>{name}</Text>
+        </View>
         <Text>Plays: {plays}</Text>
+      </View>
+    )
+  } else if (sort == 'last played') {
+    return  (
+      <View style={styles.listItem}>
+        <View style = {styles.narrowInfoListView}>
+          <Text style={styles.listText} numberOfLines = {1} ellipsizeMode ='tail'>{name}</Text>
+        </View>
+        <Text>{lastPlayed}</Text>
       </View>
     )
   }
@@ -71,10 +85,12 @@ function BoardgamesList ({navigation}) {
   const [ddOpen, setDDOpen] = useState(false)
   const [ddValue, setDDValue] = useState(null)
   const [ddItems, setDDItems] = useState ([
-    {label: '-', value: 'none'},
+    
+    {label:'Last Played', value: 'last played'},
     {label:'Alphabetical', value: 'alphabetical'},
     {label:'Rating', value: 'rating'},
-    {label: 'Most Played', value: 'most played'}
+    {label: 'Most Played', value: 'most played'},
+    {label: '-', value: 'none'}
   ])
 
   const isFocused = useIsFocused()
@@ -106,7 +122,6 @@ function BoardgamesList ({navigation}) {
     makeSearchList()
     getData()
   },[ddValue])
-  
   
   function makeSearchList () {
     let list = []
@@ -159,6 +174,10 @@ function BoardgamesList ({navigation}) {
       case 'most played':
         sortedList.sort((a,b) => b.plays - a.plays)
         //console.log(`Most Played: ${JSON.stringify(sortedList)}`)
+        break;
+      case 'last played':
+        sortedList.sort((a,b) => b.lastPlayed - a.lastPlayed)
+        console.log(`last played: ${JSON.stringify(sortedList)}`)
     }
     return sortedList;
   }
@@ -168,15 +187,16 @@ function BoardgamesList ({navigation}) {
         navigation.navigate('Details',{selected: item})
       }}
       onLongPress = {() => {}}>
-      <ListItem name = {item.name}  sort = {ddValue} rating = {item.rating} plays = {item.plays}/>
+      <ListItem name = {item.name}  sort = {ddValue} rating = {item.rating} plays = {item.plays} lastPlayed = {item.lastPlayed}/>
     </Pressable>
   )
+
 //<Button title= "clear async" onPress = {() => AsyncStorage.clear()} />
   return (
-    <View style = {styles.listBG}>
+    <View style = {styles.list}>
       <StatusBar translucent = {false} backgroundColor = '#306935'/>
       <View style = {styles.listHeader}>
-        <Pressable style = {styles.addGameButton} onPress={() => navigation.navigate('QuickAdder', {all: fullBG})}> 
+        <Pressable style = {styles.addButton} onPress={() => navigation.navigate('QuickAdder', {all: fullBG})}> 
             <Text style = {styles.headerText}>+</Text>
         </Pressable>
       </View>
@@ -445,217 +465,3 @@ function QuickAdder ({route, navigation}) {
     </View>
   )
 }
-
-
-const styles = StyleSheet.create({
-
-    container: {
-      backgroundColor: '#fff',
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    header: {
-      backgroundColor: '#306935',
-      height: 50,
-      paddingLeft: 40,
-      paddingTop: 10,
-    },
-
-    //DETAILS
-    detailsPage: {
-      flex: 1,
-    },
-    detailsView: {
-      flex: 1,
-      backgroundColor: '#fff'
-    },
-    deleteBar: {
-      flexDirection: 'row',
-      alignItems: 'flex-start',
-      backgroundColor: '#E9E9E9'
-    },
-    bin: {
-      height:30,
-      width:30,
-      margin: 10
-    },
-    title: {
-      fontSize: 30,
-      textShadowColor: '#bababa',
-      textShadowOffset: {width: -1, height: 1},
-      textShadowRadius: 5
-    },
-    titleView: {
-      alignItems: 'center',
-      justifyContent: 'center',
-      paddingLeft: 30 ,
-      paddingRight: 30 ,
-      paddingBottom: 30 ,
-      backgroundColor: '#E9E9E9',
-      borderBottomColor: '#dedede',
-      borderBottomWidth: 2,
-    },
-    subtitle: {
-      fontSize:18,
-      padding:6,
-      marginLeft: 10
-    },
-    imageView: {
-      alignItems:'center',
-      justifyContent:'center',
-    },
-    imageButton: {
-      paddingTop: 10
-    },
-    detailsImage: {
-      width: '90%',
-      aspectRatio: 1
-    },
-    counterView: {
-      flexDirection: 'row',
-      paddingTop:10
-    },
-    commentBox: {
-      fontsize:14,
-      borderWidth: 1,
-      borderColor: '#306935',
-      margin: 5,
-      padding: 5,
-      backgroundColor: 'whitesmoke'
-    },
-    ownedView: {
-      flexDirection: 'row',
-    },
-    dateContainer: {
-      flexDirection: 'row'
-    },
-    dateButtonContainer: {
-      width: '50%',
-    },
-    dateButtonContainer: {
-      justifyContent: 'center',
-      alignItems: 'center'
-    },
-    basicView: {
-      
-    },
-    saveContainer: {
-      marginBottom: 20,
-      backgroundColor: 'whitesmoke',
-      borderBottomColor: '#cccccc',
-      borderBottomWidth: 2,
-    },
-
-    toolbar: {
-      flex: 1,
-      justifyContent:'space-evenly',
-      margin: 20,
-    },
-
-    //QUICK ADD
-    qaView: {
-      flex:1,
-      justifyContent: 'center'
-    },
-    qaTitle: {
-      textAlign: 'center',
-      fontSize: 20,
-      paddingTop: 20,
-      paddingBottom: 20
-    },
-    qaInput: {
-      fontSize: 18,
-      borderWidth: 1,
-      borderColor: '#306935',
-      margin: 15,
-      padding: 10,
-      backgroundColor: 'whitesmoke'
-    },
-    qaButtonView: {
-      justifyContent: 'center',
-      alignItems: 'center',
-      height: '20%'
-    },
-    qaButton:{
-      width:'50%',
-      height:'100%'
-    },
-    qaButtonText: {
-
-    },
-    
-    //LIST
-    list:{
-      borderColor:'#306935',
-      borderWidth:1,
-    },
-    listHeader: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      height: '10%',
-      width: '100%',
-      backgroundColor: '#306935',
-      marginBottom: 20,
-    },
-    addGameButton: {
-      width: '20%',
-      height: '100%',
-      justifyContent: 'center',
-      alignItems: 'center'
-    },
-    headerText: {
-      color: '#ffffff',
-      fontSize: 25
-    },
-    searchAndSortContainer: {
-      flexDirection: 'row',
-      paddingBottom: 10
-    },
-    searchContainer: {
-      width: '60%',
-      flexGrow:4
-    },
-    sortContainer: {
-      width: '35%',
-      flexGrow:1
-    },
-    listBG: {
-      backgroundColor: '#cfcfcf',
-      height: '100%'
-    },  
-    listItem:{
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems:'center',
-  
-      height: 60,
-      margin: 0,
-      padding: 10,
-  
-      backgroundColor:'#fff',
-      borderTopColor: '#cfcfcf',
-      borderTopWidth: 1,
-    },
-    listText: {
-      fontSize: 16,
-      width: '75%'
-    },
-    searchBox: {
-      fontsize:14,
-      borderWidth: 1,
-      borderColor: '#306935',
-      margin: 5,
-      padding: 5,
-      backgroundColor: 'whitesmoke'
-    },
-    flatListContainer:{
-      height:'80%',
-      borderBottomColor: '#306935',
-      borderBottomWidth: 0
-    },
-    listButton: {
-      backgroundColor: '#fff',
-      borderColor: '#949494',
-      color: '#949494',
-    }
-  });
