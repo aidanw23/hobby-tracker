@@ -85,12 +85,11 @@ function BoardgamesList ({navigation}) {
   const [ddOpen, setDDOpen] = useState(false)
   const [ddValue, setDDValue] = useState(null)
   const [ddItems, setDDItems] = useState ([
-    
+    {label: '-', value: 'none'},
     {label:'Last Played', value: 'last played'},
     {label:'Alphabetical', value: 'alphabetical'},
     {label:'Rating', value: 'rating'},
-    {label: 'Most Played', value: 'most played'},
-    {label: '-', value: 'none'}
+    {label: 'Most Played', value: 'most played'}
   ])
 
   const isFocused = useIsFocused()
@@ -114,6 +113,7 @@ function BoardgamesList ({navigation}) {
       getData()
       setSearch('')
       setSearchList([])
+      setDDValue(null)
     },[isFocused])
   )
   
@@ -125,6 +125,7 @@ function BoardgamesList ({navigation}) {
   
   function makeSearchList () {
     let list = []
+
     if (search !== '') {
       const searchTerm = search.toUpperCase()
       for(const game of fullBG) {
@@ -138,6 +139,7 @@ function BoardgamesList ({navigation}) {
     } else {
       list = []
     }
+
     if (list.length === 0 && search !== '') {
       Alert.alert(
         "No results",
@@ -149,7 +151,7 @@ function BoardgamesList ({navigation}) {
         ]
       )
     }
-    if(ddValue !== 'none') {
+    if(ddValue !== 'none'|| ddValue !== null) {
       if (list.length == 0) {
         list = fullBG
       }
@@ -158,6 +160,8 @@ function BoardgamesList ({navigation}) {
     setSearchList(list)
   }
 
+  //function containing switch case matching sorted value to a sort for the list
+  //called as part of the make search list function above
   function sortList (list) {
     let sortedList = list;
     switch (ddValue) {
@@ -176,12 +180,18 @@ function BoardgamesList ({navigation}) {
         //console.log(`Most Played: ${JSON.stringify(sortedList)}`)
         break;
       case 'last played':
-        sortedList.sort((a,b) => b.lastPlayed - a.lastPlayed)
+        sortedList.sort(function (a,b) {
+          var aSplit = a.lastPlayed.split('/')
+          var bSplit = b.lastPlayed.split('/')
+          console.log(`${a.name}: date written as ${a.lastPlayed}, passed as ${aSplit[2]}/${aSplit[1]-1}/${aSplit[0]} and interpreted as ${new Date(aSplit[2],aSplit[1]-1,aSplit[0])}`)
+          return new Date(bSplit[2],bSplit[1]-1,bSplit[0]) -  new Date(aSplit[2],aSplit[1]-1,aSplit[0])
+        })
         console.log(`last played: ${JSON.stringify(sortedList)}`)
     }
     return sortedList;
   }
   
+  //render function for list items in the main list
   const renderListItem = ({item}) => (
     <Pressable onPress= {() => {
         navigation.navigate('Details',{selected: item})
@@ -209,6 +219,7 @@ function BoardgamesList ({navigation}) {
             setOpen = {setDDOpen}
             setValue = {setDDValue}
             setItems = {setDDItems}
+            placeholder="Sort list..."
           />
         </View>
         <View style = {styles.searchContainer}>
