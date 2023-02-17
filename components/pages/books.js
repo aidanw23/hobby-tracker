@@ -3,7 +3,7 @@ import React, {useCallback, useEffect, useState} from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useIsFocused, useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { TextInput } from 'react-native';
+import { TextInput } from 'react-native-paper';
 import Slider from '@react-native-community/slider';
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 import DropDownPicker from "react-native-dropdown-picker";

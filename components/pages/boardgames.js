@@ -1,9 +1,9 @@
-import { ScrollView, StyleSheet, Text, View, Button, StatusBar, Pressable, FlatList, Switch, Alert, Image } from 'react-native';
+import { ScrollView, Text, Animated, View, Button, StatusBar, Pressable, FlatList, Switch, Alert, Image } from 'react-native';
 import React, {useCallback, useEffect, useState} from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useIsFocused, useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { TextInput } from 'react-native';
+import { TextInput } from 'react-native-paper';
 import Slider from '@react-native-community/slider';
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 import DropDownPicker from "react-native-dropdown-picker";
@@ -75,13 +75,15 @@ const ListItem = ({name, sort, rating, plays, lastPlayed}) => {
 
 //Main menu flatlist of all added boardgames
 function BoardgamesList ({navigation}) {
-  //full list of boardgames read from Async
+  //full list of boardgames and tags read from Async
   const [fullBG, setFullBG] = useState([])
+  const [bgTags, setBGTags] = useState([])
   //search term entered
   const [search, setSearch] = useState('')
   //array of results using search
   const [searchList, setSearchList] = useState([])
-
+  const [fadeAnim] = useState(new Animated.Value(0));
+  const [shouldFade, setShouldFade] = useState(false)
   const [ddOpen, setDDOpen] = useState(false)
   const [ddValue, setDDValue] = useState(null)
   const [ddItems, setDDItems] = useState ([
@@ -102,30 +104,68 @@ function BoardgamesList ({navigation}) {
         setFullBG(JSON.parse(value))
       }
     } catch(e) {
-      console.warn("Boardgame list not read")
+      console.warn("Boardgame list not read from local storage")
+    }
+    try {
+      const tags = await AsyncStorage.getItem('bgtags')
+
+      if (tags !== null) {
+        setBGTags(JSON.parse(tags))
+      }
+    } catch (e) {
+      console.warn("Error reading tags from local storage")
     }
   }
 
   //autorefreshes page when its returned to for deleting or adding purposes
   useFocusEffect (
     useCallback(() => {
-
       getData()
       setSearch('')
       setSearchList([])
-      setDDValue(null)
+      //setDDValue(null) 
     },[isFocused])
   )
   
   //sorts list when dropdown option is selected
   useEffect (() => {
+    fadeAnim.setValue(0)
+    setShouldFade(true)
     makeSearchList()
-    getData()
+    //getData()
   },[ddValue])
   
-  function makeSearchList () {
-    let list = []
 
+  //if fullBG is changed it'll update the search list, this lets it update right away when deets are edited
+  useEffect (() => {
+    makeSearchList()
+  },[fullBG])
+
+  useEffect(() => {
+    //console.log("searchList effect should fire")
+    fadeAnim.setValue(0)
+    setShouldFade(true)
+  }, [searchList]);
+
+  //useeffect based around shouldFade, used to make main list fade iif ddvalue or search term changes
+  useEffect(() => {
+    if(shouldFade == true) {
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 500,
+        useNativeDriver: true,
+      }).start();
+      setShouldFade(false)
+    }
+  }, [shouldFade])
+
+  //makeSearchList is a function called when a search term is entered or a ddvalue is set
+  //if a search term is set it will find matching terms in name and add it to a list
+  //if no match is found it creates an alert to let user know
+  //then if sort is set, sorts list accordingly using sortList function
+  async function makeSearchList () {
+    //console.log(`Making Search list from ${JSON.stringify(fullBG)}`)
+    let list = []
     if (search !== '') {
       const searchTerm = search.toUpperCase()
       for(const game of fullBG) {
@@ -151,11 +191,12 @@ function BoardgamesList ({navigation}) {
         ]
       )
     }
+
     if(ddValue !== 'none'|| ddValue !== null) {
       if (list.length == 0) {
         list = fullBG
       }
-      sortList(list)
+      list = sortList(list)
     }
     setSearchList(list)
   }
@@ -183,10 +224,9 @@ function BoardgamesList ({navigation}) {
         sortedList.sort(function (a,b) {
           var aSplit = a.lastPlayed.split('/')
           var bSplit = b.lastPlayed.split('/')
-          console.log(`${a.name}: date written as ${a.lastPlayed}, passed as ${aSplit[2]}/${aSplit[1]-1}/${aSplit[0]} and interpreted as ${new Date(aSplit[2],aSplit[1]-1,aSplit[0])}`)
           return new Date(bSplit[2],bSplit[1]-1,bSplit[0]) -  new Date(aSplit[2],aSplit[1]-1,aSplit[0])
         })
-        console.log(`last played: ${JSON.stringify(sortedList)}`)
+        //console.log(`last played: ${JSON.stringify(sortedList)}`)
     }
     return sortedList;
   }
@@ -223,22 +263,32 @@ function BoardgamesList ({navigation}) {
           />
         </View>
         <View style = {styles.searchContainer}>
-          <TextInput placeholder='Search' style = {styles.searchBox} value = {search} onChangeText= {setSearch} onSubmitEditing = {makeSearchList}></TextInput>
+          <TextInput placeholder='Search' 
+            contentStyle = {styles.searchBox} outlineStyle={styles.searchOuter} selectionColor='#81a688'
+            value = {search} 
+            onChangeText= {setSearch} onSubmitEditing = {makeSearchList}
+            mode = 'outlined'
+            >
+          </TextInput>
         </View>
       </View>
       <View style = {styles.flatListContainer}>
         {searchList.length > 0 ? 
-        <FlatList 
-          data = {searchList} 
-          extraData = {searchList}
-          renderItem = {renderListItem} 
-        />
-        :
-        <FlatList 
-            data = {fullBG} 
-            extraData = {fullBG}
+        <Animated.View style={{opacity: fadeAnim,}}>
+          <FlatList 
+            data = {searchList} 
+            extraData = {searchList}
             renderItem = {renderListItem} 
-        />
+          />
+        </Animated.View>
+        :
+        <Animated.View style={{opacity: fadeAnim,}}>
+          <FlatList 
+              data = {fullBG} 
+              extraData = {fullBG}
+              renderItem = {renderListItem} 
+          />
+        </Animated.View>
         }   
       </View>
     </View>
@@ -285,8 +335,7 @@ function BoardgamesDetails ({route, navigation}) {
   };
 
   const handleConfirm = (date) => {
-    //console.warn("A date has been picked: ", date);
-    console.warn(JSON.stringify(date))
+    //console.warn(JSON.stringify(date))
     let DTsplit = JSON.stringify(date).replace('"', '').split('T')
     let newDate = DTsplit[0].split('-')
     setEditable((prev) => ({...prev, lastPlayed: `${newDate[2]}/${newDate[1]}/${newDate[0]}`}))

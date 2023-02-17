@@ -160,7 +160,7 @@ export const styles = StyleSheet.create({
     height: '10%',
     width: '100%',
     backgroundColor: '#306935',
-    marginBottom: 20,
+    marginBottom: 10,
   },
   addButton: {
     width: '20%',
@@ -178,11 +178,11 @@ export const styles = StyleSheet.create({
   },
   searchContainer: {
     width: '60%',
-    flexGrow:4
+    flexGrow: 4
   },
   sortContainer: {
-    width: '35%',
-    flexGrow:1
+    width: '30%',
+    flexGrow: 1
   },
   listBooks: {
     backgroundColor: '#cfcfcf',
@@ -227,12 +227,15 @@ export const styles = StyleSheet.create({
     color: '#636363'
   },
   searchBox: {
-    fontsize:14,
-    borderWidth: 1,
-    borderColor: '#306935',
-    margin: 5,
-    padding: 5,
-    backgroundColor: 'whitesmoke'
+    fontSize:14,
+    textColor: 'whitesmoke',
+  },
+  searchOuter:  {
+    color: '#81a688',
+    paddingLeft: 10,
+    marginLeft:10,
+    marginRight: 10,
+    backgroundColor: '#414542',
   },
   flatListContainer:{
     height:'80%',
