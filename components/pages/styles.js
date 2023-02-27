@@ -157,7 +157,7 @@ export const styles = StyleSheet.create({
   listHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    height: '10%',
+    height: '8%',
     width: '100%',
     backgroundColor: '#306935',
     marginBottom: 10,
