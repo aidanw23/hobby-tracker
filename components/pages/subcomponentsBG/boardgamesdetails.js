@@ -6,7 +6,6 @@ import Slider from '@react-native-community/slider';
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 import * as ImagePicker from 'expo-image-picker';
 import {styles} from '../styles.js'
- 
 
 
 //details screen for when selecting a boardgame from the list, details are passed via route.params
@@ -139,23 +138,23 @@ export function BoardgamesDetails ({route, navigation}) {
           </Pressable>
           :
           <View style = {styles.imageButton}>
-            <Button color ='#306935' title = 'Add an image' onPress={addImage} style = {styles.imageButton}></Button>
+            <Button buttonColor ='#306935' title = 'Add an image' onPress={addImage} style = {styles.imageButton}></Button>
           </View>
           }
         </View>
       <View>
         <View style={styles.counterView}>
           <Text style= {styles.subtitle}>Play count:</Text>
-          <Button color ='#306935' title = "-" onPress={() => setEditable((prev) => ({...prev, plays: +prev.plays - 1}))}></Button>
+          <Button buttonColor ='#306935' title = "-" onPress={() => setEditable((prev) => ({...prev, plays: +prev.plays - 1}))}></Button>
           <Text style= {styles.subtitle}>{editable.plays}</Text>
-          <Button color ='#306935' title = "+" onPress={() => setEditable((prev) => ({...prev, plays: +prev.plays + 1}))}></Button>
+          <Button buttonColor ='#306935' title = "+" onPress={() => setEditable((prev) => ({...prev, plays: +prev.plays + 1}))}></Button>
         </View>
 
         <View style={styles.basicView}>
           <Text style= {styles.subtitle}>Last played: {editable.lastPlayed}</Text>
           <View style= {styles.dateButtonContainerContainer}>
             <View style = {styles.dateButtonContainer}>
-              <Button color ='#306935' title="Change date" onPress= {showDatePicker} ></Button>
+              <Button buttonColor ='#306935' title="Change date" onPress= {showDatePicker} ></Button>
             </View>
           </View>
           <DateTimePickerModal
@@ -188,7 +187,7 @@ export function BoardgamesDetails ({route, navigation}) {
         </View>
       </View>
       <View style={styles.saveContainer}>
-        <Button color ='#306935' title = 'Save' onPress={saveChanges}></Button>
+        <Button buttonColor ='#306935' title = 'Save' onPress={saveChanges}></Button>
       </View>
     </View>
   </ScrollView>

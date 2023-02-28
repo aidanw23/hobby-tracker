@@ -42,7 +42,7 @@ export function QuickAdder ({route, navigation}) {
       <View>
         <TextInput value = {name} onChangeText = {setName} style = {styles.qaInput}></TextInput>
         <View style = {styles.qaButtonView}>
-          <Button style={styles.qaButton} onPress={storeGame} color ='#306935' title = 'Add game'/>
+          <Button style={styles.qaButton} onPress={storeGame} buttonColor ='#306935' title = 'Add game'/>
         </View>
       </View>
     </View>

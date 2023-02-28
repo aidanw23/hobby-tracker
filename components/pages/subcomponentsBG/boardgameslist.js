@@ -1,10 +1,9 @@
-import { Text, Animated, View, StatusBar, Pressable, FlatList, SectionList, Alert } from 'react-native';
+import { Text, Animated, View, StatusBar, Pressable, FlatList } from 'react-native';
 import React, {useCallback, useEffect, useState} from 'react';
 import { useIsFocused, useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { TextInput, Dialog, Button, Portal } from 'react-native-paper';
-import DropDownPicker from "react-native-dropdown-picker";
 import {styles} from '../styles.js'
+import { SortDropdown, SearchBar, FilterSelection } from '../../utils.js';
 
 
 // List item for the flat list
@@ -62,9 +61,9 @@ export function BoardgamesList ({navigation}) {
   const [fadeAnim] = useState(new Animated.Value(0));
   const [shouldFade, setShouldFade] = useState(false)
 
-  const [ddOpen, setDDOpen] = useState(false)
-  const [ddValue, setDDValue] = useState(null)
-  const [ddItems, setDDItems] = useState ([
+  
+  const [sortValue, setSortValue] = useState(null)
+  const [sortItems, setSortItems] = useState ([
     {label: '-', value: 'none'},
     {label:'Last Played', value: 'last played'},
     {label:'Alphabetical', value: 'alphabetical'},
@@ -99,25 +98,19 @@ export function BoardgamesList ({navigation}) {
   useFocusEffect (
     useCallback(() => {
       getData()
-      setSearchList([])
-      //setDDValue(null) 
+      //setSearchList([])
     },[isFocused])
   )
   
-  //sorts list when dropdown option is selected
   useEffect (() => {
+    console.log('Search and sort fade')
     fadeAnim.setValue(0)
-    setShouldFade(true)
-    //getData()
-  },[ddValue])
+    if (shouldFade != true) { setShouldFade(true) }
+  }, [searchList,sortValue])
   
 
-  useEffect(() => {
-    fadeAnim.setValue(0)
-    setShouldFade(true)
-  }, [searchList]);
 
-  //useeffect based around shouldFade, used to make main list fade iif ddvalue or search term changes
+  //useeffect based around shouldFade, used to make main list fade if sortvalue or search term changes
   useEffect(() => {
     if(shouldFade == true) {
       Animated.timing(fadeAnim, {
@@ -134,7 +127,7 @@ export function BoardgamesList ({navigation}) {
   }
 
   function handleSearchChange (list) {
-    if(ddValue !== 'none'|| ddValue !== null) {
+    if(sortValue !== 'none'|| sortValue !== null) {
       if (list.length == 0) {
         list = fullBG
       }
@@ -143,24 +136,25 @@ export function BoardgamesList ({navigation}) {
     setSearchList(list)
   }
 
+  function handleSortChange (newValue) {
+    setSortValue(newValue)
+  }
+
   //function containing switch case matching sorted value to a sort for the list
-  //called as part of the make search list function above
+  //called as part of the handler for Search change
   function sortList (list) {
     let sortedList = list;
-    switch (ddValue) {
+    switch (sortValue) {
       case 'none':
         break
       case 'alphabetical':
         sortedList.sort((a,b) => a.name.localeCompare(b.name))
-        //console.log(`Alphabetised: ${JSON.stringify(sortedList)}`)
         break;
       case 'rating':
         sortedList.sort((a,b) => b.rating - a.rating)
-        //console.log(`Rating: ${JSON.stringify(sortedList)}`)
         break;
       case 'most played':
         sortedList.sort((a,b) => b.plays - a.plays)
-        //console.log(`Most Played: ${JSON.stringify(sortedList)}`)
         break;
       case 'last played':
         sortedList.sort(function (a,b) {
@@ -168,7 +162,6 @@ export function BoardgamesList ({navigation}) {
           var bSplit = b.lastPlayed.split('/')
           return new Date(bSplit[2],bSplit[1]-1,bSplit[0]) -  new Date(aSplit[2],aSplit[1]-1,aSplit[0])
         })
-        //console.log(`last played: ${JSON.stringify(sortedList)}`)
     }
     return sortedList;
   }
@@ -179,7 +172,7 @@ export function BoardgamesList ({navigation}) {
         navigation.navigate('Details',{selected: item})
       }}
       onLongPress = {() => {}}>
-      <ListItem name = {item.name}  sort = {ddValue} rating = {item.rating} plays = {item.plays} lastPlayed = {item.lastPlayed}/>
+      <ListItem name = {item.name}  sort = {sortValue} rating = {item.rating} plays = {item.plays} lastPlayed = {item.lastPlayed}/>
     </Pressable>
   )
 
@@ -196,18 +189,8 @@ export function BoardgamesList ({navigation}) {
 
       {/* SEARCH AND SORT*/}
       <View style = {styles.searchAndSortContainer}>
-        <View style = {styles.sortContainer}>
-          <DropDownPicker 
-            open = {ddOpen}
-            value = {ddValue}
-            items = {ddItems}
-            setOpen = {setDDOpen}
-            setValue = {setDDValue}
-            setItems = {setDDItems}
-            placeholder="Sort list..."
-          />
-        </View>
-        <SearchBar onChange = {handleSearchChange} fullList = {fullBG} sortType = {ddValue}/>
+        <SortDropdown onChange = {handleSortChange} value = {sortValue} items = {sortItems} />
+        <SearchBar onChange = {handleSearchChange} fullList = {fullBG} sortType = {sortValue}/>
         <View>
           <FilterSelection onChange = {handleFilterSelection} tags = {bgTags}/>
         </View>
@@ -233,105 +216,4 @@ export function BoardgamesList ({navigation}) {
       </View>
     </View>
   );
-}
-
-
-//props for search bar are: sortType (=ddValue), fullList (=fullBG or books), sortType (=ddValue)
-function SearchBar (props) {
-  const [search, setSearch] = useState('')
-
-  //if fullBG is changed it'll update the search list, this lets it update right away when deets are edited
-  useEffect (() => {
-    makeSearchList()
-  },[props.fullList, props.sortType])
-
-  //makeSearchList is a function called when a search term is entered or a ddvalue is set
-  //if a search term is set it will find matching terms in name and add it to a list
-  //if no match is found it creates an alert to let user know
-  //then if sort is set, sorts list accordingly using sortList function
-  async function makeSearchList () {
-    let list = []
-    if (search !== '') {
-      const searchTerm = search.toUpperCase()
-      for(const game of props.fullList) {
-        //console.log(game["name"])
-        const nameCompare = game["name"].toUpperCase()
-        if (nameCompare.includes(searchTerm)) {
-          //console.log(`match between ${searchTerm} and ${game.name}`)
-          list.push(game)
-        }
-      }
-    } else {
-      list = []
-    }
-
-    if (list.length === 0 && search !== '') {
-      Alert.alert(
-        "No results",
-        "No matching titles were found in your collection!",
-        [
-          {
-            text: 'OK'
-          }
-        ]
-      )
-    }
-
-    props.onChange(list)
-  }
-
-  return (
-    <View style = {styles.searchContainer}>
-      <TextInput placeholder='Search' 
-        contentStyle = {styles.searchBox} outlineStyle={styles.searchOuter} selectionColor='#81a688'
-        value = {search} 
-        onChangeText= {setSearch} onSubmitEditing = {makeSearchList}
-        mode = 'outlined'
-      >
-      </TextInput>
-    </View>
-  )
-}
-
-//checkbox for tags
-//radiobutton for sorts?
-function FilterSelection (props) {
-  const [filterVisible, setFilterVisible] = useState(props.visible)
-
-  function showFilters () {
-    setFilterVisible(true)
-  }
-
-  function hideFilters () {
-    setFilterVisible(false)
-  }
-
-  return (
-    <View>
-      <Pressable onPress={showFilters}>
-        <Text>Filters...</Text>
-        <Portal>
-          <Dialog visible={filterVisible} onDismiss={hideFilters}>
-            <Dialog.Title>Alert</Dialog.Title>
-            <Dialog.Content>
-              <SectionList  
-                sections = {
-                  [{title: 'Filters', data: ['Rating between:', 'Plays between:', 'Last played between:']},
-                  {title: 'Tags', data: [props.tags]}]}
-                  keyExtractor={(item, index) => item + index}
-                  renderItem={({item}) => (
-                  <View>
-                    <Text>{item}</Text>
-                  </View>
-                )}
-              />
-            </Dialog.Content>
-            <Dialog.Actions>
-              <Button onPress={hideFilters}>Done</Button>
-            </Dialog.Actions>
-          </Dialog>
-        </Portal>
-      </Pressable>
-    </View>
-  )
 }
