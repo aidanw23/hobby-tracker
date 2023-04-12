@@ -59,7 +59,6 @@ export function BoardgamesList ({navigation}) {
   const [searchList, setSearchList] = useState([])
 
   const [fadeAnim] = useState(new Animated.Value(0));
-  const [shouldFade, setShouldFade] = useState(false)
 
   
   const [sortValue, setSortValue] = useState(null)
@@ -105,22 +104,10 @@ export function BoardgamesList ({navigation}) {
   useEffect (() => {
     console.log('Search and sort fade')
     fadeAnim.setValue(0)
-    if (shouldFade != true) { setShouldFade(true) }
+    fadeInList();
   }, [searchList,sortValue])
   
 
-
-  //useeffect based around shouldFade, used to make main list fade if sortvalue or search term changes
-  useEffect(() => {
-    if(shouldFade == true) {
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 500,
-        useNativeDriver: true,
-      }).start();
-      setShouldFade(false)
-    }
-  }, [shouldFade])
 
   function handleFilterSelection (selection) {
     setSelection(selection)
@@ -175,6 +162,14 @@ export function BoardgamesList ({navigation}) {
       <ListItem name = {item.name}  sort = {sortValue} rating = {item.rating} plays = {item.plays} lastPlayed = {item.lastPlayed}/>
     </Pressable>
   )
+  
+  function fadeInList() {
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 500,
+      useNativeDriver: true,
+    }).start();
+  }
 
 //<Button title= "clear async" onPress = {() => AsyncStorage.clear()} />
   return (

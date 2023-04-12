@@ -1,10 +1,8 @@
-import { Text, Animated, View, StatusBar, Pressable, FlatList, SectionList, Alert } from 'react-native';
-import React, {useCallback, useEffect, useState} from 'react';
-import { useIsFocused, useFocusEffect } from '@react-navigation/native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Text, View, Pressable, SectionList, Alert } from 'react-native';
+import React, {useEffect, useState} from 'react';
 import { TextInput, Dialog, Button, Portal } from 'react-native-paper';
 import DropDownPicker from "react-native-dropdown-picker";
-import {styles} from '../styles.js'
+import { styles } from './pages/styles';
 
 /*  SORT DROPDOWN
 Props are: value (selected sort passed up with onChange), onChange (=handleSortChange in parent),

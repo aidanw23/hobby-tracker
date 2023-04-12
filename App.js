@@ -11,6 +11,7 @@ import {Provider} from 'react-native-paper';
 const Tab = createBottomTabNavigator();
 
 export default function App() {
+  
   return (
     <Provider>
       <NavigationContainer>
