@@ -9,4 +9,4 @@ const BoardgameSchema = new mongoose.Schema ({
   lastPlayed: String
 })
 
-mongoose.model("boardgame", BoardgameSchema)
+module.exports = mongoose.model("Boardgame", BoardgameSchema)

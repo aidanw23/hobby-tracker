@@ -2,15 +2,16 @@ const express = require('express')
 const app = express()
 const bodyParser = require ('body-parser')
 const mongoose = require ('mongoose')
-require('./Boardgame')
+const Boardgame = require('./models/Boardgame')
+
 require('dotenv').config({path:'../.env'})
 
 app.use(bodyParser.json())
 
-const Boardgame = mongoose.model("boardgame")
+
 const mongouri = process.env.MONGO_URI
 
-
+//MONGOOSE CONNECTION
 mongoose.connect (mongouri, {
   useNewUrlParser:true
 })
@@ -23,32 +24,19 @@ mongoose.connection.on("error", (err) => {
   console.log("error: " + err)
 })
 
+//ROUTES IMPORT
+const boardgamesRoute = require('./routes/boardgameRoutes.js')
+app.use ('/boardgames', boardgamesRoute)
+
+
+
+
+//ROUTES
 app.get('/' , (req, res) => {
-  Boardgame.find({}).then(data=> {
-    res.send(data)}
-    ).catch(err => {
-      console.log(err)
-    })
+  res.send("Its working")
 })
 
-app.post('/send-data', (req,res) => {
-  const boardgame = new Boardgame({
-    name:req.body.name,
-    rating: req.body.rating,
-    comments: req.body.comments,
-    owned: req.body.owned,
-    lastPlayed: req.body.lastPlayed,
-    plays: req.body.plays
-  })
-  boardgame.save()
-  .then(data => {
-    console.log(data)
-    res.send("success")
-  }).catch(err => {
-    console.log(err)
-  })
-  
-})
+
 
 app.post('/delete', (req,res) => {
   Boardgame.findByIdAndRemove(req.body.id)
