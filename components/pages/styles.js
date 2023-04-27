@@ -228,7 +228,7 @@ export const styles = StyleSheet.create({
   },
   searchBox: {
     fontSize:14,
-    textColor: 'whitesmoke',
+    color: 'whitesmoke',
   },
   searchOuter:  {
     color: '#81a688',

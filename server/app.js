@@ -1,4 +1,5 @@
 const express = require('express')
+const cors = require('cors')
 const app = express()
 const bodyParser = require ('body-parser')
 const mongoose = require ('mongoose')
@@ -6,6 +7,7 @@ const Boardgame = require('./models/Boardgame')
 
 require('dotenv').config({path:'../.env'})
 
+app.use(cors())
 app.use(bodyParser.json())
 
 
@@ -34,6 +36,7 @@ app.use ('/boardgames', boardgamesRoute)
 //ROUTES
 app.get('/' , (req, res) => {
   res.send("Its working")
+  console.log("gotten")
 })
 
 
@@ -65,6 +68,6 @@ app.post('/update', (req,res) => {
   })
 })
 
-app.listen(3000, ()=>{
+app.listen(process.env.PORT, ()=>{
   console.log('server running')
 })

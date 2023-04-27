@@ -2,8 +2,8 @@ import { Text, Animated, View, StatusBar, Pressable, FlatList } from 'react-nati
 import React, {useCallback, useEffect, useState} from 'react';
 import { useIsFocused, useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import {styles} from '../styles.js'
-import { SortDropdown, SearchBar, FilterSelection } from '../../utils.js';
+import {styles} from './styles.js'
+import { SortDropdown, SearchBar, FilterSelection } from '../utils.js';
 
 
 // List item for the flat list
@@ -45,7 +45,7 @@ const ListItem = ({name, sort, rating, plays, lastPlayed}) => {
 }
 
 //Main menu flatlist of all added boardgames
-export function BoardgamesList ({navigation}) {
+export function DevTest ({navigation}) {
 
   //full list of boardgames and tags read from Async
   const [fullBG, setFullBG] = useState([])
@@ -58,9 +58,6 @@ export function BoardgamesList ({navigation}) {
   //array of results using search
   const [searchList, setSearchList] = useState([])
 
-  const [fadeAnim] = useState(new Animated.Value(0));
-
-  
   const [sortValue, setSortValue] = useState(null)
   const [sortItems, setSortItems] = useState ([
     {label: '-', value: 'none'},
@@ -72,13 +69,23 @@ export function BoardgamesList ({navigation}) {
 
   const isFocused = useIsFocused()
 
-  //getdata - async function that reads local storage for stored boardgames and tags
+  //getdata - async function that reads local storage and cloud for stored boardgames and tags
+  //if it 
   const getData = async () => {
     try {
-      const value = await AsyncStorage.getItem('boardgames')
-      //console.log(value)
-      if(value !== null) {
-        setFullBG(JSON.parse(value))
+      const localValue = await AsyncStorage.getItem('boardgames')
+      const response = await fetch('http://192.168.1.89:5050/boardgames/', {
+      method: 'GET'
+      })
+      const cloudValue = await response.json()
+      console.log(`cloud: ${JSON.stringify(cloudValue)}`)
+      console.log(`local: ${JSON.stringify(localValue)}`)
+      if(cloudValue !== null) {
+        setFullBG("From cloud: " + cloudValue)
+        console.log(JSON.stringify(fullBG))
+      } else if (localValue !== null) {
+        setFullBG(JSON.parse(localValue))
+        console.log("From local: " + JSON.stringify(fullBG))
       }
     } catch(e) {
       console.warn("Boardgame list not read from local storage")
@@ -101,13 +108,6 @@ export function BoardgamesList ({navigation}) {
     },[isFocused])
   )
   
-  useEffect (() => {
-    //console.log('Search and sort fade')
-    fadeAnim.setValue(0)
-    fadeInList();
-  }, [searchList,sortValue])
-  
-
 
   function handleFilterSelection (selection) {
     setSelection(selection)
@@ -163,14 +163,19 @@ export function BoardgamesList ({navigation}) {
     </Pressable>
   )
   
-  function fadeInList() {
-    Animated.timing(fadeAnim, {
-      toValue: 1,
-      duration: 500,
-      useNativeDriver: true,
-    }).start();
-  }
 
+  async function boardgameGetter () {
+    console.log('Pressed')
+    try {
+      const response = await fetch('http://192.168.1.89:5050/boardgames/', {
+      method: 'GET'
+      })
+      const data = await response.json()
+      console.log(JSON.stringify(data))
+    } catch (err) {
+      console.log(err)
+    }
+  }
 //<Button title= "clear async" onPress = {() => AsyncStorage.clear()} />
   return (
     <View style = {styles.list}>
@@ -179,6 +184,9 @@ export function BoardgamesList ({navigation}) {
       <View style = {styles.listHeader}>
         <Pressable style = {styles.addButton} onPress={() => navigation.navigate('QuickAdder', {all: fullBG})}> 
             <Text style = {styles.headerText}>+</Text>
+        </Pressable>
+        <Pressable onPress = {boardgameGetter}>
+          <Text style = {styles.headerText}>GET</Text>
         </Pressable>
       </View>
 
@@ -192,21 +200,17 @@ export function BoardgamesList ({navigation}) {
       </View>
       <View style = {styles.flatListContainer}>
         {searchList.length > 0 ? 
-        <Animated.View style={{opacity: fadeAnim,}}>
           <FlatList 
             data = {searchList} 
             extraData = {searchList}
             renderItem = {renderListItem} 
           />
-        </Animated.View>
         :
-        <Animated.View style={{opacity: fadeAnim,}}>
-          <FlatList 
-              data = {fullBG} 
-              extraData = {fullBG}
-              renderItem = {renderListItem} 
-          />
-        </Animated.View>
+        <FlatList 
+            data = {fullBG} 
+            extraData = {fullBG}
+            renderItem = {renderListItem} 
+        />
         }   
       </View>
     </View>
