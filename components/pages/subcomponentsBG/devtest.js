@@ -4,6 +4,7 @@ import { useIsFocused, useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {styles} from '../styles';
 import { SortDropdown, SearchBar, FilterSelection } from '../../utils.js';
+import { Button } from 'react-native-paper'
 
 import { supabase } from '../../../supaback/supabase.js'
 
@@ -48,13 +49,14 @@ const ListItem = ({name, sort, rating, plays, lastPlayed}) => {
 //Main menu flatlist of all added boardgames
 export function DevTest ({navigation}) {
 
+  const [loading, setLoading] = useState(false)
   //full list of boardgames and tags read from Async
   const [fullBG, setFullBG] = useState([])
   const [bgTags, setBGTags] = useState([])
 
   //search term entered to search list
   
-  const [selection, setSelection] = useState()
+  const [filter, setFilter] = useState()
 
   //array of results using search
   const [searchList, setSearchList] = useState([])
@@ -76,6 +78,7 @@ export function DevTest ({navigation}) {
 
   //getdata - async function that reads local storage for stored boardgames and tags
   const getData = async () => {
+    setLoading(true)
     console.log("getting devtest data")
     let localBGs, localTags;
     let cloudBGs, cloudTags;
@@ -102,9 +105,9 @@ export function DevTest ({navigation}) {
       console.log(e)
     }
     
-    setFullBG(localBGs)
-    setBGTags(localTags)
-    
+    if  (localBGs !== null) setFullBG(JSON.parse(localBGs))
+    setBGTags(JSON.parse(localTags))
+    setLoading(false)
   }
 
   //autorefreshes page when its returned to for deleting or adding purposes
@@ -115,10 +118,8 @@ export function DevTest ({navigation}) {
     },[isFocused])
   )
   
-  
-
   function handleFilterSelection (selection) {
-    setSelection(selection)
+    setFilter(selection)
   }
 
   function handleSearchChange (list) {
@@ -160,6 +161,10 @@ export function DevTest ({navigation}) {
     }
     return sortedList;
   }
+
+  function filterList (list) {
+
+  }
   
   //render function for list items in the main list
   const renderListItem = ({item}) => (
@@ -171,7 +176,7 @@ export function DevTest ({navigation}) {
     </Pressable>
   )
   
-//<Button title= "clear async" onPress = {() => AsyncStorage.clear()} />
+
   return (
     <View style = {styles.list}>
       <StatusBar translucent = {false} backgroundColor = '#306935'/>
@@ -180,6 +185,7 @@ export function DevTest ({navigation}) {
         <Pressable style = {styles.addButton} onPress={() => navigation.navigate('QuickAdder', {all: fullBG})}> 
             <Text style = {styles.headerText}>+</Text>
         </Pressable>
+        <Button title= "clear async" onPress = {() => AsyncStorage.clear()} >CLEAR </Button>
       </View>
 
       {/* SEARCH AND SORT*/}
@@ -190,25 +196,27 @@ export function DevTest ({navigation}) {
           <FilterSelection onChange = {handleFilterSelection} tags = {bgTags}/>
         </View>
       </View>
+      {loading ?
+      <View>
+        <Text>Loading...</Text>
+      </View>
+      :
       <View style = {styles.flatListContainer}>
-        {searchList.length > 0 ? 
-        <Animated.View style={{opacity: fadeAnim,}}>
+        {searchList.length > 0 ?         
           <FlatList 
             data = {searchList} 
             extraData = {searchList}
             renderItem = {renderListItem} 
-          />
-        </Animated.View>
+          />        
         :
-        <Animated.View style={{opacity: fadeAnim,}}>
           <FlatList 
               data = {fullBG} 
               extraData = {fullBG}
               renderItem = {renderListItem} 
-          />
-        </Animated.View>
+          />        
         }   
       </View>
+      }
     </View>
   );
 }
