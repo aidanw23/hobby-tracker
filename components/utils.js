@@ -1,5 +1,5 @@
 import { Text, View, Pressable, SectionList, Alert } from 'react-native';
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useState, createContext} from 'react';
 import { TextInput, Dialog, Button, Portal } from 'react-native-paper';
 import DropDownPicker from "react-native-dropdown-picker";
 import { styles } from './pages/styles';
@@ -128,3 +128,6 @@ export function FilterSelection (props) {
     </View>
   )
 }
+
+//Context provider that will pass user id down in App.js so subcomponents can use it to find bits
+export const UserContext = createContext(0)

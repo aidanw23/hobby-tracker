@@ -1,9 +1,9 @@
 import { Text, Animated, View, StatusBar, Pressable, FlatList } from 'react-native';
-import React, {useCallback, useEffect, useState} from 'react';
+import React, {useCallback, useContext, useEffect, useState} from 'react';
 import { useIsFocused, useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {styles} from '../styles';
-import { SortDropdown, SearchBar, FilterSelection } from '../../utils.js';
+import { SortDropdown, SearchBar, FilterSelection, UserContext } from '../../utils.js';
 import { Button } from 'react-native-paper'
 
 import { supabase } from '../../../supaback/supabase.js'
@@ -53,16 +53,13 @@ export function DevTest ({navigation}) {
   //full list of boardgames and tags read from Async
   const [fullBG, setFullBG] = useState([])
   const [bgTags, setBGTags] = useState([])
-
   //search term entered to search list
-  
   const [filter, setFilter] = useState()
-
   //array of results using search
   const [searchList, setSearchList] = useState([])
-
   const [fadeAnim] = useState(new Animated.Value(0));
 
+  const user = useContext(UserContext)
   
   //should sort value be a memo
   const [sortValue, setSortValue] = useState(null)
@@ -79,35 +76,40 @@ export function DevTest ({navigation}) {
   //getdata - async function that reads local storage for stored boardgames and tags
   const getData = async () => {
     setLoading(true)
-    console.log("getting devtest data")
+    console.log("Devtest fetching...")
     let localBGs, localTags;
     let cloudBGs, cloudTags;
 
     try {
       localBGs = await AsyncStorage.getItem('boardgames')
       localTags = await AsyncStorage.getItem('bgtags')
-      console.log("Local Bgs: ")
-      console.log(localBGs)
+      console.log("Local Bgs: "+ localBGs)
     } catch(e) {
       console.warn("Error reading from local storage")
       console.log(e)
     }
 
     try {
-      console.log("trying supa")
       const { data: boardgames, error } = await supabase
         .from('boardgames')
         .select()
+        .eq('user_id', user.id)
       if (error) throw error;
-      console.log(JSON.stringify(boardgames))
+      console.log("Cloud bgs for "+ user.id + ": " + JSON.stringify(boardgames))
     } catch(e) {
       console.warn("Error reading from supa storage")
       console.log(e)
     }
     
-    if  (localBGs !== null) setFullBG(JSON.parse(localBGs))
-    setBGTags(JSON.parse(localTags))
-    setLoading(false)
+    syncAndStateData ()
+  }
+
+  function syncAndStateData (cloudTime, localTime, cloudData, localData) {
+    const local = new Date(localTime)
+    const cloud = new Date(cloudTime)
+    if (local > cloud) {
+      
+    }
   }
 
   //autorefreshes page when its returned to for deleting or adding purposes

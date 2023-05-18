@@ -1,11 +1,14 @@
 import { ScrollView, Text, View, Pressable, Switch, Alert, Image } from 'react-native';
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useState, useContext} from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { TextInput, Button } from 'react-native-paper';
 import Slider from '@react-native-community/slider';
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 import * as ImagePicker from 'expo-image-picker';
 import {styles} from '../styles.js'
+
+import { supabase } from '../../../supaback/supabase.js'
+import { UserContext } from '../../utils.js';
 
 
 //details screen for when selecting a boardgame from the list, details are passed via route.params
@@ -20,7 +23,9 @@ export function BoardgamesDetails ({route, navigation}) {
   const [isDatePickerVisible,setDatePickerVisibility] = useState(false)
   const [imageURI, setImageURI] = useState (editable.image)
 
-  //the two use effects below are to update editable when states change used for inputs
+  const user = useContext(UserContext)
+
+  //the three use effects below are to update editable when states change used for inputs
   useEffect(() => {
     setEditable((prev) => ({...prev, comments: commentTemp}))
   }, [commentTemp])
@@ -47,7 +52,7 @@ export function BoardgamesDetails ({route, navigation}) {
   };
 
   const handleConfirm = (date) => {
-    //console.warn(JSON.stringify(date))
+    
     let DTsplit = JSON.stringify(date).replace('"', '').split('T')
     let newDate = DTsplit[0].split('-')
     setEditable((prev) => ({...prev, lastPlayed: `${newDate[2]}/${newDate[1]}/${newDate[0]}`}))
@@ -67,8 +72,17 @@ export function BoardgamesDetails ({route, navigation}) {
     }
   }
 
-  //function called when save button is hit to replace whatever entry exists for name with editable that contains changes
+  /*
+  function called when save button is hit
+    finds match in Async storage and replaces it with "editable" state (updated details)
+    
+    updates last update time to be same on local and online
+  */
   async function saveChanges () {
+    
+    console.log(`saving ${editable}`)
+    const updateTime = Date.now()
+    //try catch for local saves
     try {
       const fullBG = await AsyncStorage.getItem('boardgames')
       let savingFullBG = JSON.parse(fullBG)
@@ -81,10 +95,22 @@ export function BoardgamesDetails ({route, navigation}) {
       }
       const stringed = JSON.stringify(savingFullBG)
       AsyncStorage.setItem('boardgames', stringed)
+      AsyncStorage.setItem('boardgameTime', updateTime)
       navigation.goBack()
     } catch (e) {
-      console.log(`Error saving changes: ${e}`)
+      console.log(`Error saving changes locally: ${e}`)
     }
+
+    //cloud save
+    try {
+      const { error } = await supabase
+        .from('boardgames')
+        .update({name: editable.name, comments: editable.comments, owned: editable.owned, plays: editable.plays, rating: editable.rating, lastPlayed: editable.lastPlayed })
+        .eq('user_id', user.id)
+    } catch (e) {
+
+    }
+
   }
 
   async function deleteGame (){
@@ -99,6 +125,7 @@ export function BoardgamesDetails ({route, navigation}) {
       }
     }
     const stringed = JSON.stringify(newBG)
+    const updateTime = Date.now()
     AsyncStorage.setItem('boardgames', stringed)
     navigation.goBack()   
   }
