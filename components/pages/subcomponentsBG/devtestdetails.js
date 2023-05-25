@@ -9,6 +9,7 @@ import {styles} from '../styles.js'
 
 import { supabase } from '../../../supaback/supabase.js'
 import { UserContext } from '../../utils.js';
+import { useNetInfo } from '@react-native-community/netinfo';
 
 
 //details screen for when selecting a boardgame from the list, details are passed via route.params
@@ -24,6 +25,7 @@ export function BoardgamesDetails ({route, navigation}) {
   const [imageURI, setImageURI] = useState (editable.image)
 
   const user = useContext(UserContext)
+  
 
   //the three use effects below are to update editable when states change used for inputs
   useEffect(() => {
@@ -79,10 +81,8 @@ export function BoardgamesDetails ({route, navigation}) {
     updates last update time to be same on local and online
   */
   async function saveChanges () {
-    
     console.log(`saving ${editable}`)
-    const updateTime = Date.now()
-    //try catch for local saves
+    //try catch for local saves. reads fullbgs, iterates looking for a match and then overwrites it
     try {
       const fullBG = await AsyncStorage.getItem('boardgames')
       let savingFullBG = JSON.parse(fullBG)
@@ -95,25 +95,50 @@ export function BoardgamesDetails ({route, navigation}) {
       }
       const stringed = JSON.stringify(savingFullBG)
       AsyncStorage.setItem('boardgames', stringed)
-      AsyncStorage.setItem('boardgameTime', updateTime)
       navigation.goBack()
     } catch (e) {
       console.log(`Error saving changes locally: ${e}`)
     }
-
-    //cloud save
-    try {
-      const { error } = await supabase
-        .from('boardgames')
-        .update({name: editable.name, comments: editable.comments, owned: editable.owned, plays: editable.plays, rating: editable.rating, lastPlayed: editable.lastPlayed })
-        .eq('user_id', user.id)
-    } catch (e) {
-
+    // if connected, add to cloud. Else add to queue
+    if (netInfo.isInternetReachable) {
+      try {
+        const { error } = await supabase
+          .from('boardgames')
+          .update({name: editable.name, comments: editable.comments, owned: editable.owned, plays: editable.plays, rating: editable.rating, lastPlayed: editable.lastPlayed })
+          .eq('user_id', user.id)
+      } catch (e) {
+        console.log(`Error saving changes on cloud: ${e}`)
+      }
+    } else {
+      try {
+        const queue = await AsyncStorage.getItem('queuedboardgames')
+        let savingQueue = JSON.parse(queue)
+        let matchFound = false;
+        for (let i = 0; i < savingQueue.length; i ++) {
+          if (savingQueue[i].name === editable.name) {
+            console.log(`Queue match found: ${JSON.stringify(savingQueue[i])}`)
+            console.log(`Making it: ${JSON.stringify({...editable, type: "UPDATE"})}`)
+            savingQueue[i] = {...editable, type:"UPDATE"};
+            matchFound = true;
+          }
+        }
+        if (matchFound = false) {
+          console.log("No match for game in queue yet, adding")
+          savingQueue.push({...editable, type: "UPDATE"})
+        }
+        const stringed = JSON.stringify(savingFullBG)
+        AsyncStorage.setItem('boardgameTime', updateTime)
+        navigation.goBack()
+      } catch (e) {
+        console.log(`Error saving changes locally: ${e}`)
+      }
     }
 
   }
 
-  async function deleteGame (){
+
+  async function deleteGame () {
+    //local delete
     const fullBG = await AsyncStorage.getItem('boardgames');
     let parsedBG = JSON.parse(fullBG);
     let newBG = []
@@ -125,9 +150,37 @@ export function BoardgamesDetails ({route, navigation}) {
       }
     }
     const stringed = JSON.stringify(newBG)
-    const updateTime = Date.now()
     AsyncStorage.setItem('boardgames', stringed)
-    navigation.goBack()   
+    navigation.goBack()
+    
+    // if connected, delete from cloud. Else add a delete type to queue
+    if (netInfo.isInternetReachable) {
+      try {
+        const { error } = await supabase
+          .from('boardgames')
+          .delete()
+          .match({user_id: user.id, name: editable.name})
+      } catch (e) {
+        console.log(`Error deleting on cloud: ${e}`)
+      }
+    } else {
+      try {
+        const queue = await AsyncStorage.getItem('queuedboardgames')
+        let savingQueue = JSON.parse(queue)
+        for (let i = 0; i < savingQueue.length; i ++) {
+          if (savingQueue[i].name === editable.name) {
+            console.log(`Queue match found: ${JSON.stringify(savingQueue[i])}`)
+            console.log(`Making it: ${JSON.stringify({...editable, type: "DELETE"})}`)
+            savingQueue[i] = {...editable, type:"DELETE"};
+          }
+        }
+        const stringed = JSON.stringify(savingQueue)
+        AsyncStorage.setItem('queuedboardgames', stringed)
+        navigation.goBack()
+      } catch (e) {
+        console.log(`Error saving changes locally: ${e}`)
+      }
+    }
   }
 
   function deleteAlert () {
@@ -216,6 +269,7 @@ export function BoardgamesDetails ({route, navigation}) {
       <View style={styles.saveContainer}>
         <Button buttonColor ='#306935' title = 'Save' onPress={saveChanges}></Button>
       </View>
+      
     </View>
   </ScrollView>
   )

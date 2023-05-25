@@ -131,3 +131,6 @@ export function FilterSelection (props) {
 
 //Context provider that will pass user id down in App.js so subcomponents can use it to find bits
 export const UserContext = createContext(0)
+
+export const NetworkContext = createContext(false)
+

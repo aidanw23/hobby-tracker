@@ -1,5 +1,5 @@
 import { Text, Animated, View, StatusBar, Pressable, FlatList } from 'react-native';
-import React, {useCallback, useContext, useEffect, useState} from 'react';
+import React, {useCallback, useContext, useEffect, useState, useLayoutEffect} from 'react';
 import { useIsFocused, useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {styles} from '../styles';
@@ -7,6 +7,7 @@ import { SortDropdown, SearchBar, FilterSelection, UserContext } from '../../uti
 import { Button } from 'react-native-paper'
 
 import { supabase } from '../../../supaback/supabase.js'
+import { NetworkContext } from '../../utils.js';
 
 // List item for the flat list
 const ListItem = ({name, sort, rating, plays, lastPlayed}) => {
@@ -60,7 +61,8 @@ export function DevTest ({navigation}) {
   const [fadeAnim] = useState(new Animated.Value(0));
 
   const user = useContext(UserContext)
-  
+  const isConnected = useContext(NetworkContext)
+
   //should sort value be a memo
   const [sortValue, setSortValue] = useState(null)
   const [sortItems, setSortItems] = useState ([
@@ -73,48 +75,46 @@ export function DevTest ({navigation}) {
 
   const isFocused = useIsFocused()
 
+
   //getdata - async function that reads local storage for stored boardgames and tags
   const getData = async () => {
     setLoading(true)
     console.log("Devtest fetching...")
     let localBGs, localTags;
     let cloudBGs, cloudTags;
-
-    try {
-      localBGs = await AsyncStorage.getItem('boardgames')
-      localTags = await AsyncStorage.getItem('bgtags')
-      console.log("Local Bgs: "+ localBGs)
-    } catch(e) {
-      console.warn("Error reading from local storage")
-      console.log(e)
+    console.log(`Context says device connection is ${JSON.stringify(isConnected)}`)
+    if (isConnected) {
+      try {
+        const { data: boardgames, error } = await supabase
+          .from('boardgames')
+          .select()
+          .eq('user_id', user.id)
+        if (error) throw error;
+        console.log("Cloud bgs for "+ user.id + ": " + JSON.stringify(boardgames))
+        setFullBG(boardgames)
+      } catch(e) {
+        console.warn("Error reading from supa storage")
+        console.log(e)
+      }
+    } else {
+      try {
+        localBGs = await AsyncStorage.getItem('boardgames')
+        localTags = await AsyncStorage.getItem('bgtags')
+        console.log("Local Bgs: "+ localBGs)
+      } catch(e) {
+        console.warn("Error reading from local storage")
+        console.log(e)
+      }
+      console.warn("Local read only, cloud not connected")
     }
-
-    try {
-      const { data: boardgames, error } = await supabase
-        .from('boardgames')
-        .select()
-        .eq('user_id', user.id)
-      if (error) throw error;
-      console.log("Cloud bgs for "+ user.id + ": " + JSON.stringify(boardgames))
-    } catch(e) {
-      console.warn("Error reading from supa storage")
-      console.log(e)
-    }
-    
-    syncAndStateData ()
+    setLoading(false)
   }
 
-  function syncAndStateData (cloudTime, localTime, cloudData, localData) {
-    const local = new Date(localTime)
-    const cloud = new Date(cloudTime)
-    if (local > cloud) {
-      
-    }
-  }
 
   //autorefreshes page when its returned to for deleting or adding purposes
   useFocusEffect (
     useCallback(() => {
+      console.log("getting data")
       getData()
       //setSearchList([])
     },[isFocused])
